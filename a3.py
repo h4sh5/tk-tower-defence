@@ -9,8 +9,7 @@ from level import AbstractLevel
 
 BACKGROUND_COLOUR = "#4a2f48"
 
-__author__ = ""
-__copyright__ = ""
+__author__ = "Haoxi Tan"
 
 
 # Could be moved to a separate file, perhaps levels/simple.py, and imported
@@ -103,10 +102,12 @@ class TowerGameApp(Stepper):
 
         self._master = master
         super().__init__(master, delay=delay)
+        master.title("tkDefend")
 
         self._game = game = TowerGame()
 
         self.setup_menu()
+        self._master.configure(menu=self._menu)
 
         # create a game view and draw grid borders
         self._view = view = GameView(master, size=game.grid.cells,
@@ -115,7 +116,32 @@ class TowerGameApp(Stepper):
         view.pack(side=tk.LEFT, expand=True)
 
         # Task 1.3 (Status Bar): instantiate status bar
-        # ...
+        self._status_bar = tk.Frame(self._master)
+        self._status_bar.pack(expand=True, anchor=tk.N, padx=20)
+
+        self._wave_strvar = tk.StringVar()
+        self._wave_label = tk.Label(self._status_bar, textvariable=self._wave_strvar)
+        self._wave_label.pack(expand=True, side=tk.TOP)
+
+        self._score_strvar = tk.StringVar()
+        self._score_label = tk.Label(self._status_bar, textvariable=self._score_strvar)
+        self._score_label.pack(expand=True, side=tk.TOP)
+
+        self._coins_strvar = tk.StringVar()
+        self._coins_image = tk.PhotoImage(file="images/coins.gif")
+        self._coins_image_label = tk.Label(self._status_bar, image=self._coins_image)
+        self._coins_label = tk.Label(self._status_bar, textvariable=self._coins_strvar)
+        self._coins_image_label.pack(side=tk.LEFT,expand=True)
+        self._coins_label.pack(side=tk.LEFT,expand=True)
+
+        self._lives_strvar = tk.StringVar()
+        self._lives_image = tk.PhotoImage(file="images/heart.gif")
+        self._lives_image_label = tk.Label(self._status_bar, image=self._lives_image)
+        self._lives_label = tk.Label(self._status_bar, textvariable=self._lives_strvar)
+        self._lives_image_label.pack(side=tk.LEFT,expand=True)
+        self._lives_label.pack(side=tk.LEFT,expand=True)
+
+
 
         # Task 1.5 (Play Controls): instantiate widgets here
         # ...
@@ -125,8 +151,12 @@ class TowerGameApp(Stepper):
         game.on("enemy_escape", self._handle_escape)
         game.on("cleared", self._handle_wave_clear)
 
-        # Task 1.2 (Tower Placement): bind mouse events to canvas here
-        # ...
+        #Task 1.2 (Tower Placement): bind mouse events to canvas here
+        #Binds left click, mouse motion and mouse leave
+        self._view.bind("<Button-1>", self._left_click)
+        self._view.bind("<Motion>", self._move)
+        self._view.bind("<ButtonRelease-1>", self._mouse_leave)
+        self._view.bind("<Leave>",self._mouse_leave)
 
         # Level
         self._level = MyLevel()
@@ -141,15 +171,15 @@ class TowerGameApp(Stepper):
         # Remove the relevant lines while attempting the corresponding section
         # Hint: Comment them out to keep for reference
 
-        # Task 1.2 (Tower Placement): remove these lines
-        towers = [
-            ([(2, 2), (3, 0), (4, 1), (4, 2), (4, 3)], SimpleTower),
-            ([(2, 5)], MissileTower)
-        ]
+        # # Task 1.2 (Tower Placement): remove these lines
+        # towers = [
+        #     ([(2, 2), (3, 0), (4, 1), (4, 2), (4, 3)], SimpleTower),
+        #     ([(2, 5)], MissileTower)
+        # ]
 
-        for positions, tower in towers:
-            for position in positions:
-                self._game.place(position, tower_type=tower)
+        # for positions, tower in towers:
+        #     for position in positions:
+        #         self._game.place(position, tower_type=tower)
 
         # Task 1.5 (Tower Placement): remove these lines
         self._game.queue_wave([], clear=True)
@@ -160,9 +190,45 @@ class TowerGameApp(Stepper):
         self.start()
 
     def setup_menu(self):
+        '''
+        Construct a file menu
+        '''
         # Task 1.4: construct file menu here
-        # ...
-        pass
+        self._menu = tk.Menu(self._master)
+        self._filemenu = tk.Menu(self._menu)
+
+        self._filemenu.add_command(label="New Game", command=self._new_game)
+        self._filemenu.add_command(label="Exit", command=self._exit)
+        self._menu.add_cascade(label="File", menu=self._filemenu)
+
+    def set_score(self, score):
+
+        '''updates the score on the display
+        Parameters:
+            score (int)
+        '''
+        self._score_strvar.set("score: %d" % score)
+
+    def set_coins(self, coins):
+        '''updates the coins on the display
+        Parameters:
+            coins (int)
+        '''
+        self._coins_strvar.set(coins)
+
+    def set_lives(self, lives):
+        '''updates the lives on the display
+        Parameters:
+            lives (int)
+        '''
+        self._lives_strvar.set(lives)
+
+    def set_wave(self, wave):
+        '''updates the waves on the display
+        Parameters:
+            waves (int)
+        '''
+        self._wave_strvar.set("Wave: %d/20" % wave)
 
     def _toggle_paused(self, paused=None):
         """Toggles or sets the paused state
@@ -192,7 +258,10 @@ class TowerGameApp(Stepper):
         self._won = False
 
         # Task 1.3 (Status Bar): Update status here
-        # ...
+        self.set_wave(self._wave)
+        self.set_score(self._score)
+        self.set_coins(self._coins)
+        self.set_lives(self._lives)
 
         # Task 1.5 (Play Controls): Re-enable the play controls here (if they were ever disabled)
         # ...
@@ -205,11 +274,21 @@ class TowerGameApp(Stepper):
 
     # Task 1.4 (File Menu): Complete menu item handlers here (including docstrings!)
     #
-    # def _new_game(self):
-    #     ...
-    #
-    # def _exit(self):
-    #     ...
+    def _new_game(self):
+        '''
+        restarts the game
+        '''
+        self._view.delete(tk.ALL)
+        self._setup_game()
+        self.start()
+
+
+
+    def _exit(self):
+        '''
+        exits the application
+        '''
+        exit(0)
 
     def refresh_view(self):
         """Refreshes the game view"""
@@ -255,13 +334,16 @@ class TowerGameApp(Stepper):
                 for position in grid_path.get_shortest()]
 
         # Task 1.2 (Tower placement): Draw the tower preview here
-        # ...
+        self._view.draw_preview(self._current_tower)
+        self._view.draw_path(path)
+
 
     def _mouse_leave(self, event):
         """..."""
         # Task 1.2 (Tower placement): Delete the preview
         # Hint: Relevant canvas items are tagged with: 'path', 'range', 'shadow'
         #       See tk.Canvas.delete (delete all with tag)
+        self._view.delete("shadow", "range", "path")
 
     def _left_click(self, event):
         """..."""
@@ -274,7 +356,8 @@ class TowerGameApp(Stepper):
 
         if self._game.place(cell_position, tower_type=self._current_tower.__class__):
             # Task 1.2 (Tower placement): Attempt to place the tower being previewed
-            pass
+            self._game.place(cell_position, self._current_tower)
+            
 
     def next_wave(self):
         """Sends the next wave of enemies against the player"""
@@ -284,7 +367,7 @@ class TowerGameApp(Stepper):
         self._wave += 1
 
         # Task 1.3 (Status Bar): Update the current wave display here
-        # ...
+        self.set_wave(self._wave)
 
         # Task 1.5 (Play Controls): Disable the add wave button here (if this is the last wave)
         # ...
@@ -318,7 +401,8 @@ class TowerGameApp(Stepper):
             self._score += int(enemy.points * bonus)
 
         # Task 1.3 (Status Bar): Update coins & score displays here
-        # ...
+        self.set_coins(self._coins)
+        self.set_score(self._score)
 
     def _handle_escape(self, enemies):
         """
@@ -332,7 +416,7 @@ class TowerGameApp(Stepper):
             self._lives = 0
 
         # Task 1.3 (Status Bar): Update lives display here
-        # ...
+        self.set_lives(self._lives)
 
         # Handle game over
         if self._lives == 0:
