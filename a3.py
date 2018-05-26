@@ -6,10 +6,13 @@ from enemy import SimpleEnemy, HardenedEnemy
 from utilities import Stepper
 from view import GameView
 from level import AbstractLevel
+from tower_view import TowerView
+import math
 
 BACKGROUND_COLOUR = "#4a2f48"
 
 __author__ = "Haoxi Tan"
+
 
 
 # Could be moved to a separate file, perhaps levels/simple.py, and imported
@@ -37,7 +40,7 @@ class MyLevel(AbstractLevel):
         elif wave == 2:
             # A hardcoded list of multiple (step, enemy) pairs
 
-            enemies = [(10, SimpleEnemy()), (15, SimpleEnemy()), (30, SimpleEnemy())]
+            enemies = [(5, HardenedEnemy()), (15, SimpleEnemy()), (30, SimpleEnemy())]
 
 
         elif 3 <= wave < 10:
@@ -92,7 +95,7 @@ class StatusBar(tk.Frame):
         self._master = master
 
         self._status_bar = tk.Frame(self._master)
-        self._status_bar.pack(expand=True, anchor=tk.N, padx=20)
+        self._status_bar.pack(expand=True, anchor=tk.N)
 
         self._wave_strvar = tk.StringVar()
         self._wave_label = tk.Label(self._status_bar, textvariable=self._wave_strvar)
@@ -117,7 +120,6 @@ class StatusBar(tk.Frame):
         self._lives_label.pack(side=tk.LEFT,expand=True)
 
     def set_score(self, score):
-
         '''updates the score on the display
         Parameters:
             score (int)
@@ -144,6 +146,42 @@ class StatusBar(tk.Frame):
             waves (int)
         '''
         self._wave_strvar.set("Wave: %d/20" % wave)
+
+
+class ShopTowerView(tk.Frame):
+    '''class for each shop tower item'''
+
+    def __init__(self, master, tower, click_command, *args, **kwargs):#, *args, **kwargs):
+        '''
+        Constructs an individual shop tower view
+    
+        tower (AbstractTower)
+
+        '''
+        super().__init__(master, **kwargs)
+
+        tower.position = (tower.cell_size//2, tower.cell_size//2)  # Position in centre
+        tower.rotation = 3 * math.pi / 2  # Point up
+
+        self._canvas = tk.Canvas(master, width=tower.cell_size, height=tower.cell_size,
+            bg="#ff6600", bd=0, highlightthickness=0)
+        self._canvas.pack(expand=True)
+
+        TowerView.draw(self._canvas, tower, tower.cell_size)
+
+
+
+    def set_available(self, enabled=True):
+        '''set the status of the shop view
+
+        Parameters:
+            enabled (bool): if the player can afford the tower. If not the text
+            will be red
+        '''
+        if enabled:
+            self.configure(color='black')
+        else:
+            self.configure(color='red')
 
 
 
@@ -184,15 +222,43 @@ class TowerGameApp(Stepper):
         # create a game view and draw grid borders
         self._view = view = GameView(master, size=game.grid.cells,
                                      cell_size=game.grid.cell_size,
-                                     bg='#000033') # was antique white before
+                                     bg='#000033') # was antique white
         view.pack(side=tk.LEFT, expand=True)
 
+        #have a menu frame on the right
+        self._right_frame = tk.Frame(self._master)
+        self._right_frame.pack(side=tk.RIGHT, expand=True, fill=tk.Y)
+
         # Task 1.3 (Status Bar): instantiate status bar
-        self._status_bar = StatusBar(self._master)
+        self._status_bar = StatusBar(self._right_frame)
+
+        #shop goes between status bar and control frame
+        shop = tk.Frame(self._right_frame, bg="#ff6600")
+        shop.pack(side=tk.TOP, expand = True, anchor=tk.N, fill=tk.BOTH)
+
+
+        towers = [
+            SimpleTower,
+            MissileTower,
+            LaserTower
+        ]
+
+        # Create views for each tower & store to update if availability changes
+        self._tower_views = []
+        for tower_class in towers:
+            tower = tower_class(self._game.grid.cell_size // 2)
+
+            view = ShopTowerView(shop, tower,
+                click_command=lambda class_=tower_class: self.select_tower(class_),
+                bg="#ff6600", highlightbackground="#4b3b4a",bd=0,highlightthickness=0)
+
+            view.pack(fill=tk.X)
+            # Used to check if tower is affordable when refreshing view
+            self._tower_views.append((tower, view))  
 
         # Task 1.5 (Play Controls): instantiate widgets here
-        self._control_frame = tk.Frame(self._master)
-        self._control_frame.pack(side=tk.RIGHT, expand=True)
+        self._control_frame = tk.Frame(self._right_frame)
+        self._control_frame.pack(expand=True)
         self._wave_button = tk.Button(self._control_frame,
             text="next wave", command=self.next_wave)
         self._wave_button.pack(side=tk.LEFT)
@@ -202,6 +268,7 @@ class TowerGameApp(Stepper):
         self._play_button = tk.Button(self._control_frame, textvariable=self._play_button_text,
             command=self._toggle_paused)
         self._play_button.pack(side=tk.RIGHT)
+
 
         # bind game events
         game.on("enemy_death", self._handle_death)
@@ -227,9 +294,9 @@ class TowerGameApp(Stepper):
         self._level = MyLevel()
 
         #self.select_tower(SimpleTower)
-        self.select_tower(LaserTower)
+        self.select_tower(SimpleTower)
 
-        view.draw_borders(game.grid.get_border_coordinates(), "#66ff66")
+        self._view.draw_borders(game.grid.get_border_coordinates(), "#66ff66")
 
         # Get ready for the game
         self._setup_game()
@@ -309,18 +376,17 @@ class TowerGameApp(Stepper):
         self._toggle_paused(paused=True)
 
     # Task 1.4 (File Menu): Complete menu item handlers here (including docstrings!)
-    #
+    
     def _new_game(self):
         '''
         restarts the game
         '''
-        self._view.delete(tk.ALL)
+
+        
         #clears the enemies
+        self._view.delete("enemy","tower")
         self._game.enemies = [] 
         self._setup_game()
-        #self.start()
-
-
 
 
     def _exit(self):
@@ -350,6 +416,7 @@ class TowerGameApp(Stepper):
             self._view.draw_enemies(self._game.enemies)
         self._view.draw_towers(self._game.towers)
         self._view.draw_obstacles(self._game.obstacles)
+
 
     def _step(self):
         """
@@ -476,6 +543,7 @@ class TowerGameApp(Stepper):
         Parameters:
             tower (AbstractTower): The new tower type
         """
+        print(tower)
         self._current_tower = tower(self._game.grid.cell_size)
 
     def _handle_death(self, enemies):

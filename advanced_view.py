@@ -51,7 +51,7 @@ import tkinter as tk
 
 from range_ import AbstractRange, DonutRange, PlusRange, CircularRange
 from tower import AbstractTower, MissileTower, PulseTower, SimpleTower, \
-    AbstractObstacle, Missile, Pulse
+    AbstractObstacle, Missile, Pulse, LaserTower, Laser
 from enemy import AbstractEnemy
 from utilities import rotate_point
 
@@ -164,6 +164,7 @@ class TowerView(SimpleView):
         (MissileTower, '_draw_missile'),
         (PulseTower, '_draw_pulse'),
         (AbstractTower, '_draw_simple'),
+        (LaserTower, '_draw_simple'), 
     ])
 
     @classmethod
@@ -255,6 +256,33 @@ class TowerView(SimpleView):
 
         return tags
 
+    @classmethod
+    def _draw_laser_tower(cls, canvas: tk.Canvas, tower_: LaserTower):
+        """Draws a missile tower"""
+
+        x, y = tower_.position
+        angle = tower_.rotation
+
+        x_diameter, y_diameter = tower_.grid_size
+        top_left, bottom_right = tower_.get_bounding_box()
+
+        cell_size = tower_.cell_size
+
+        colour = tower_.colour
+
+        body = canvas.create_oval(top_left, bottom_right, tag='tower', fill=colour)
+
+        tags = [body]
+
+        for delta_angle in (-math.pi/12, math.pi/12):
+            tags.append(
+                canvas.create_line(x, y, x + (x_diameter / 2) * cell_size * math.cos(angle + delta_angle),
+                                   y + (y_diameter / 2) * cell_size * math.sin(angle + delta_angle),
+                                   tag='tower')
+            )
+
+        return tags
+
 
 class EnemyView(SimpleView):
     """Manages view logic for enemies"""
@@ -301,7 +329,8 @@ class ObstacleView(SimpleView):
     draw_methods = sort_draw_methods([
         (AbstractObstacle, '_draw_invisible'),
         (Missile, '_draw_missile'),
-        (Pulse, '_draw_pulse')
+        (Pulse, '_draw_pulse'),
+        (Laser, '_draw_laser'),
     ])
 
     @classmethod
@@ -334,6 +363,21 @@ class ObstacleView(SimpleView):
         tail = x - dx, y - dy
 
         return canvas.create_line(head, tail, tag='obstacle')
+
+    @classmethod
+    def _draw_laser(cls, canvas: tk.Canvas, laser: Laser):
+        """Draws a laser"""
+
+        x, y = laser.position
+
+        length, width = laser.size
+
+        dx, dy = rotate_point((length / 2, width / 2), laser.rotation)
+
+        head = x + dx, y + dy
+        tail = x - dx, y - dy
+
+        return canvas.create_line(head, tail, tag='obstacle', fill="#00ffff")
 
     @classmethod
     def _draw_pulse(cls, canvas: tk.Canvas, pulse: Pulse):
