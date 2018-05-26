@@ -480,7 +480,7 @@ class TowerGameApp(Stepper):
             event (tk.Event): Tkinter mouse event
         """
         # retrieve position to place tower
-        if self._current_tower is None:
+        if self._current_tower is None or self._paused != False:
             return
 
         position = event.x, event.y
