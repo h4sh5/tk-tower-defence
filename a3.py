@@ -217,7 +217,9 @@ class TowerGameApp(Stepper):
         self._view.bind("<Button-2>", self._right_click)
 
         #handling close window
-        self._master.protocol("WM_DELETE_WINDOW", self._exit)
+        import sys
+        if len(sys.argv) == 1:
+            self._master.protocol("WM_DELETE_WINDOW", self._exit)
         #catching keyboard event Destroy
         #self._master.bind("<Destroy>", self._exit)
 

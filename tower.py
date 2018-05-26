@@ -377,6 +377,7 @@ class PulseTower(AbstractTower):
     base_cost = 60
     level_cost = 45
 
+
     range = PlusRange(0.5, 1.5)
 
     def step(self, units):
@@ -402,25 +403,28 @@ class PulseTower(AbstractTower):
 
         return pulses
 
+
+
 class Laser(AbstractObstacle):
-    """A laser beam that deals energy damage and goes through enemies"""
+    """A laser fired from a LaserTower"""
+
+
     name = "Laser"
     colour = "#00ffff" #Aqua
     rotation_threshold = (1 / 3) * math.pi
 
 
-    def __init__(self, position, cell_size, target: AbstractEnemy, size=.15,
+    def __init__(self, position, cell_size, target: AbstractEnemy, size=.2,
                  rotation: Union[int, float] = 0, grid_speed=.1, damage=10):
-        
         super().__init__(position, (size, 0), cell_size, grid_speed=grid_speed, rotation=rotation, damage=damage)
-        
         self.target = target
 
-
     def step(self, units):
-        """ 
-        Creates a constant line in the direction of the enemy
-
+        """Performs a time step for this missile
+        
+        Moves towards target and damages if collision occurs
+        If target is dead, this missile expires
+        
         Parameters:
             units.enemies (UnitManager): The unit manager to select targets from
             
@@ -429,17 +433,25 @@ class Laser(AbstractObstacle):
                 - persist (bool): True if the obstacle should persist in the game (else will be removed)
                 - new_obstacles (list[AbstractObstacle]): A list of new obstacles to add to the game, or None
         """
-
         if self.target.is_dead():
             return False, None
 
-        angle = angle_between(self.position, self.target.position)
-        self.rotation = rotate_toward(self.rotation, angle, self.rotation_threshold)
+        # move toward the target
+        radius = euclidean_distance(self.position, self.target.position)
 
         if radius <= self.speed:
             self.target.damage(self.damage, 'energy')
             return False, None
 
+        # Rotate toward target and move
+        angle = angle_between(self.position, self.target.position)
+        self.rotation = rotate_toward(self.rotation, angle, self.rotation_threshold)
+
+        dx, dy = polar_to_rectangular(self.speed, self.rotation)
+        x, y = self.position
+        self.position = x + dx, y + dy
+
+        return True, None
 
 
 class LaserTower(AbstractTower):
