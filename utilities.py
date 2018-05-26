@@ -4,15 +4,18 @@ General & Geometric Utilities
 
 import math
 import tkinter as tk
-from typing import Union
+from typing import Union, Tuple
 from inspect import getmembers, isfunction
-
-from type_hints import Num_T, Point_T, Point2D_T
 
 __author__ = "Benjamin Martin and Brae Webb"
 __copyright__ = "Copyright 2018, The University of Queensland"
 __license__ = "MIT"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
+
+# pylint: disable=invalid-name
+Num_T = Union[int, float]
+Point2D_T = Tuple[Num_T, Num_T]
+Point_T = Tuple[Num_T, ...]
 
 
 def euclidean_distance(point1: Point_T, point2: Point_T) -> float:
@@ -25,7 +28,7 @@ def vector_length(vector: Point_T) -> float:
     return sum(i ** 2 for i in vector) ** .5
 
 
-def angular_difference(angle1: Num_T, angle2: Num_T) -> Num_T:
+def angular_difference(angle1: float, angle2: float) -> float:
     """(float) Returns the smallest angle between 'angle2' & 'angle1' (in the range [-pi, +pi])"""
     delta = ((angle2 - angle1 + math.pi) % (2 * math.pi)) - math.pi
 
@@ -42,11 +45,11 @@ def rotate_toward(angle, target, maximum_rotation):
     """(float) Rotates 'angle' toward 'target', by no more than 'maximum_rotation'"""
     delta_angle = angular_difference(angle, target)
 
-    if abs(delta_angle) > maximum_rotation:
-        multiplier = 1 if delta_angle > 0 else -1
-        return angle + maximum_rotation * multiplier
-    else:
+    if abs(delta_angle) <= maximum_rotation:
         return target
+
+    multiplier = 1 if delta_angle > 0 else -1
+    return angle + maximum_rotation * multiplier
 
 
 def rectangles_intersect(top_left1: Point2D_T, bottom_right1: Point2D_T,
@@ -59,13 +62,13 @@ def rectangles_intersect(top_left1: Point2D_T, bottom_right1: Point2D_T,
         top_left2 (tuple<num, num>): The top-left corner position of rectangle 2
         bottom_right2 (tuple<num, num>): The bottom-right corner position of rectangle 2
     """
-    left1, topoint1 = top_left1
+    left1, top1 = top_left1
     right1, bottom1 = bottom_right1
 
-    left2, topoint2 = top_left2
+    left2, top = top_left2
     right2, bottom2 = bottom_right2
 
-    return not (left1 > right2 or right1 < left2 or topoint1 > bottom2 or bottom1 < topoint2)
+    return not (left1 > right2 or right1 < left2 or top1 > bottom2 or bottom1 < top)
 
 
 def rotate_point(point, angle):
@@ -89,6 +92,41 @@ def normalise_vector(vector):
     return tuple(i / magnitude for i in vector)
 
 
+def polar_to_rectangular(radius, angle):
+    """(tuple<int, int>) Returns rectangular form of polar vector, represented
+    by 'radius' & 'angle' (radians)"""
+    return radius * math.cos(angle), radius * math.sin(angle)
+
+
+def get_delta_through_centre(cell_offset, delta):
+    """Returns new delta that first moves towards cell centre if offset does not occur along
+    the same axis as delta.
+
+    For example, if cell offset is vertical (i.e. (0, .25)) and delta is horizontal (i.e. (-1, 0)),
+    delta will be adjusted to that it first moves vertically towards the centre (i.e. (0, -1)).
+
+    More formally, delta will be a unit vector such that:
+        offset + a * delta = (0, 0), where a is a real number
+
+    Parameters:
+        cell_offset (tuple<float, float>): The relative offset from the centre of a cell
+        delta (tuple<int, int>): The position delta to move towards
+
+    Preconditions:
+        delta is a unit vector
+    """
+    x, y = cell_offset
+
+    # Convert x & y to sign
+    x = 1 if x > 0 else (-1 if x < 0 else 0)
+    y = 1 if y > 0 else (-1 if y < 0 else 0)
+
+    if (x, y) not in ((0, 0), delta):  # Go the opposite way
+        return -x, -y
+
+    return delta
+
+
 def inherit_docstrings(cls):
     """Class decorator for methods to inherit super classes docstrings
 
@@ -110,8 +148,9 @@ def inherit_docstrings(cls):
 
 
 class Stepper:
-    """Emulates non-blocking loop for tkinter GUI application by repeatedly 
-    runnning step function after a given interval
+    """Asynchronous control class to emulate non-blocking loop for
+    tkinter GUI application by repeatedly runnning step function
+    after a given interval
     
     Can be stopped/paused
     """
@@ -131,12 +170,15 @@ class Stepper:
         self._after_id = None
 
     def is_started(self):
+        """(bool) Returns True iff the stepper is started"""
         return self._after_id is not None
 
     def is_stopped(self):
+        """(bool) Returns True iff the stepper is stopped"""
         return self._after_id is None and not self._paused
 
     def is_paused(self):
+        """(bool) Returns True iff the stepper is paused"""
         return self._paused
 
     def start(self):

@@ -65,6 +65,7 @@ class TowerView:
         (tower.MissileTower, '_draw_simple'),
         (tower.PulseTower, '_draw_simple'),
         (tower.AbstractTower, '_draw_simple'),
+        (tower.LaserTower, '_draw_simple'),
     ], key=lambda i: len(i[0].mro()), reverse=True)
 
     @classmethod

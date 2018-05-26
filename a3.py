@@ -1,8 +1,8 @@
 import tkinter as tk
 
 from model import TowerGame
-from tower import SimpleTower, MissileTower
-from enemy import SimpleEnemy
+from tower import SimpleTower, MissileTower, LaserTower
+from enemy import SimpleEnemy, HardenedEnemy
 from utilities import Stepper
 from view import GameView
 from level import AbstractLevel
@@ -33,10 +33,13 @@ class MyLevel(AbstractLevel):
             # A hardcoded singleton list of (step, enemy) pairs
 
             enemies = [(10, SimpleEnemy())]
+
         elif wave == 2:
             # A hardcoded list of multiple (step, enemy) pairs
 
             enemies = [(10, SimpleEnemy()), (15, SimpleEnemy()), (30, SimpleEnemy())]
+
+
         elif 3 <= wave < 10:
             # List of (step, enemy) pairs spread across an interval of time (steps)
 
@@ -181,7 +184,7 @@ class TowerGameApp(Stepper):
         # create a game view and draw grid borders
         self._view = view = GameView(master, size=game.grid.cells,
                                      cell_size=game.grid.cell_size,
-                                     bg='antique white')
+                                     bg='#000033') # was antique white before
         view.pack(side=tk.LEFT, expand=True)
 
         # Task 1.3 (Status Bar): instantiate status bar
@@ -211,6 +214,7 @@ class TowerGameApp(Stepper):
         self._view.bind("<Motion>", self._move)
         #self._view.bind("<ButtonRelease-1>", self._mouse_leave)
         self._view.bind("<Leave>",self._mouse_leave)
+        self._view.bind("<Button-2>", self._right_click)
 
         #handling close window
         self._master.protocol("WM_DELETE_WINDOW", self._exit)
@@ -220,9 +224,10 @@ class TowerGameApp(Stepper):
         # Level
         self._level = MyLevel()
 
-        self.select_tower(SimpleTower)
+        #self.select_tower(SimpleTower)
+        self.select_tower(LaserTower)
 
-        view.draw_borders(game.grid.get_border_coordinates())
+        view.draw_borders(game.grid.get_border_coordinates(), "#66ff66")
 
         # Get ready for the game
         self._setup_game()
@@ -240,11 +245,7 @@ class TowerGameApp(Stepper):
         #     for position in positions:
         #         self._game.place(position, tower_type=tower)
 
-        # Task 1.5 (Tower Placement): remove these lines
-        # done
 
-        # Task 1.5 (Play Controls): remove this line
-        # done 
 
     def setup_menu(self):
         '''
@@ -271,7 +272,6 @@ class TowerGameApp(Stepper):
 
         # Task 1.5 (Play Controls): Reconfigure the pause button here
         
-
         if paused:
             self.pause()
             self._play_button_text.set("play")
@@ -284,7 +284,7 @@ class TowerGameApp(Stepper):
     def _setup_game(self):
         self._wave = 0
         self._score = 0
-        self._coins = 50
+        self._coins = 1000 #was 50
         self._lives = 20
 
         self._won = False
@@ -296,7 +296,9 @@ class TowerGameApp(Stepper):
         self._status_bar.set_lives(self._lives)
 
         # Task 1.5 (Play Controls): Re-enable the play controls here (if they were ever disabled)
-        # ...
+        if self._wave_button.cget('state') != 'normal' or self._play_button.cget('state') != 'normal':
+            self._wave_button.config(state=tk.NORMAL)
+            self._play_button.config(state=tk.NORMAL)
 
         self._game.reset()
 
@@ -326,11 +328,18 @@ class TowerGameApp(Stepper):
         confirm_window = tk.Toplevel(self._master)
 
         exit_label = tk.Label(confirm_window, text="Are you sure you want to exit?")
-        exit_label.pack()
+        exit_label.pack(pady=10)
         yes_button = tk.Button(confirm_window, text="Yes", command=self._master.destroy)
-        yes_button.pack(side=tk.BOTTOM)
+        yes_button.pack(side=tk.LEFT, padx=20)
         no_button = tk.Button(confirm_window, text="No", command=confirm_window.destroy)
-        no_button.pack(side=tk.BOTTOM)
+        no_button.pack(side=tk.LEFT, padx=20)
+
+        #quitting with keyboard
+        def handle_return(event):
+            self._master.destroy()
+
+        confirm_window.bind("<Return>", handle_return)
+
 
 
     def refresh_view(self):
@@ -382,14 +391,25 @@ class TowerGameApp(Stepper):
 
 
     def _mouse_leave(self, event):
-        """..."""
+        """
+        Handles the mouse leaving the game view canvas
+
+        Parameter:
+            event (tk.Event): Tkinter mouse event
+        """
+
         # Task 1.2 (Tower placement): Delete the preview
         # Hint: Relevant canvas items are tagged with: 'path', 'range', 'shadow'
         #       See tk.Canvas.delete (delete all with tag)
         self._view.delete("shadow", "range", "path")
 
     def _left_click(self, event):
-        """..."""
+        """
+        Handles the mouse left clicking in the game view canvas
+
+        Parameter:
+            event (tk.Event): Tkinter mouse event
+        """
         # retrieve position to place tower
         if self._current_tower is None:
             return
@@ -402,6 +422,28 @@ class TowerGameApp(Stepper):
             legal, grid_path = self._game.attempt_placement(position)
             if legal:
                 self._game.place(cell_position, self._current_tower)
+                #refresh view upon placing a tower
+                self._step()
+
+    def _right_click(self, event):
+        """
+        Handles the mouse right clicking in the game view canvas.
+        The tower in that cell position will be removed and 80% of its value 
+        will be returned to the player.
+
+        Parameter:
+            event (tk.Event): Tkinter mouse event
+        """
+
+        position = event.x, event.y
+        cell_position = self._game.grid.pixel_to_cell(position)
+
+        removed_tower = self._game.remove(cell_position)
+        self._coins += removed_tower.get_value()
+
+        #updates coins string var to display coins
+        self._status_bar.set_coins(self._coins)
+
             
 
     def next_wave(self):
@@ -415,7 +457,8 @@ class TowerGameApp(Stepper):
         self._status_bar.set_wave(self._wave)
 
         # Task 1.5 (Play Controls): Disable the add wave button here (if this is the last wave)
-        # ...
+        if self._wave == 20:
+            self._wave_button.config(state=tk.DISABLED)
 
         # Generate wave and enqueue
         wave = self._level.get_wave(self._wave)
@@ -472,8 +515,6 @@ class TowerGameApp(Stepper):
         if self._wave == self._level.get_max_wave():
             self._handle_game_over(won=True)
 
-        # Task 1.5 (Play Controls): remove this line
-        # done
 
     def _handle_game_over(self, won=False):
         """Handles game over
@@ -495,6 +536,13 @@ class TowerGameApp(Stepper):
 
         label = tk.Label(dialog_box, text=message)
         label.pack(padx=50,pady=20)
+
+        ok_button = tk.Button(dialog_box, text="ok", command=dialog_box.destroy)
+        ok_button.pack()
+
+        #disable buttons if game over
+        self._wave_button.config(state=tk.DISABLED)
+        self._play_button.config(state=tk.DISABLED)
 
 
 

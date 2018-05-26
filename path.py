@@ -1,9 +1,28 @@
+"""
+Path-finding logic for navigating a grid with obstacles 
+"""
+
+#                                                  ,  ,
+#                                                / \/ \
+#                                               (/ //_ \_
+#      .-._                                      \||  .  \
+#       \  '-._                            _,:__.-"/---\_ \
+#  ______/___  '.    .--------------------'~-'--.)__( , )\ \
+# `'--.___  _\  /    |             Here        ,'    \)|\ `\|
+#      /_.-' _\ \ _:,_          Be Dragons           " ||   (
+#    .'__ _.' \'-/,`-~`                                |/
+#        '. ___.> /=,|  Abandon hope all ye who enter  |
+#         / .-'/_ )  '---------------------------------'
+#         )'  ( /(/
+#              \\ "
+#               '=='
+
 from queue import Queue
 
 __author__ = "Benjamin Martin and Brae Webb"
 __copyright__ = "Copyright 2018, The University of Queensland"
 __license__ = "MIT"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 
 class Path:
@@ -111,6 +130,14 @@ class Path:
             self.deltas[best] = {delta}
 
     def get_best_path(self):
+        """Yields (position, delta) pairs on best path, from start to end
+        
+        Yield:
+            (position, delta) pair:
+                - position (tuple<int, int>): (column, row) position of point on the path 
+                - delta (tuple<int, int>): change in (column, row) position to reach next point on path,
+                                           else None iff delta == end 
+        """
         best = self.start
 
         for delta in self.get_best_deltas():
@@ -146,6 +173,26 @@ class Path:
                 break
 
     def get_best_delta(self, cell, previous=None):
+        """(tuple<int, int>) Returns change in (column, row) position to reach next point on path
+        
+        Parameters:
+            cell (tuple<int, int>): Current point on the path
+            previous (tuple<int, int>): Previous point on the path
+        """
         if previous and previous in self.deltas[cell]:
             return previous
         return next(iter(self.deltas[cell]))
+
+    def get_sources(self, destination):
+        """Yields the cell(s) that flow into destination
+        
+        Parameters:
+            destination (tuple<int, int>): The destination cell 
+        """
+
+        for source, deltas in self.deltas.items():
+            for delta in deltas:
+                next_ = tuple(a + b for a, b in zip(source, delta))
+
+                if next_ == destination:
+                    yield source

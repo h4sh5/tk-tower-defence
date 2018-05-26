@@ -53,7 +53,7 @@ class RangeView:
     def _draw_circular(cls, canvas: tk.Canvas, range_: range_.CircularRange, position, cell_size, *args, **kwargs):
         x, y = position
         dr = range_.radius * cell_size
-        return [canvas.create_oval(x - dr, y - dr, x + dr, y + dr, tag='range')]
+        return [canvas.create_oval(x - dr, y - dr, x + dr, y + dr, tag='range', fill='white')]
 
     @classmethod
     def _draw_donut(cls, canvas: tk.Canvas, range_: range_.DonutRange, position, cell_size, *args, **kwargs):
@@ -61,7 +61,7 @@ class RangeView:
         x, y = position
         for radius in (range_.inner_radius, range_.outer_radius):
             dr = radius * cell_size
-            tag = canvas.create_oval(x - dr, y - dr, x + dr, y + dr, tag='range')
+            tag = canvas.create_oval(x - dr, y - dr, x + dr, y + dr, tag='range',fill='white')
             tags.append(tag)
         return tags
 

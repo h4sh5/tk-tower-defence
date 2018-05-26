@@ -5,7 +5,7 @@ from utilities import vector_length
 __author__ = "Benjamin Martin"
 __copyright__ = "Copyright 2018, The University of Queensland"
 __license__ = "MIT"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 
 class AbstractRange:
@@ -56,8 +56,6 @@ class PlusRange(AbstractRange):
         out = self.outer_radius
 
         x, y = point
-
-        print(inn, out, x, y)
 
         return (-inn < x < inn and -out < y < out) or (-out < x < out and -inn < y < inn)
 

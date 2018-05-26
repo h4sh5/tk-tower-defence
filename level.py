@@ -3,7 +3,7 @@
 __author__ = "Benjamin Martin and Brae Webb"
 __copyright__ = "Copyright 2018, The University of Queensland"
 __license__ = "MIT"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 
 class AbstractLevel:
@@ -52,24 +52,39 @@ class AbstractLevel:
             yield int(interval_step * i)
 
     @classmethod
-    # TODO: convert to class structure which can be added together
-    def generate_sub_wave(cls, steps, count, enemy_class_, args=None, kwargs=None, offset=0):
-        # TODO: docstring
+    def generate_sub_wave(cls, steps, count, enemy_class, args=None, kwargs=None, offset=0):
+        """Generates a sub-wave compatible with TowerGame.queue_wave
+        
+        Parameters:
+            steps (int): The number of steps over which to spawn this sub-wave
+            count (int): The number of enemies to distribute
+            enemy_class (Class<AbstractEnemy>): The enemy constructor
+            args: Positional arguments to pass to the enemy's constructor
+            kwargs: Keyword arguments to pass to the enemy's constructor
+            offset (int): The first step (i.e. positive offset for each step)
+        """
         if args is None:
             args = ()
         if kwargs is None:
             kwargs = {}
 
         for step in cls.generate_intervals(steps, count):
-            yield step + offset, enemy_class_(*args, **kwargs)
+            yield step + offset, enemy_class(*args, **kwargs)
 
     @classmethod
     def generate_sub_waves(cls, sub_waves):
+        """Generates successive sub-waves compatible with TowerGame.queue_wave
+        
+        Parameters:
+            sub_waves: list of (steps, count, enemy_class, args, kwargs) tuples, where
+                       parameters align with AbstractLevel.generate_sub_wave
+        """
         enemies = []
         offset = 0
-        for steps, count, enemy_type, args, kwargs in sub_waves:
+        for steps, count, enemy_class, args, kwargs in sub_waves:
             if count is not None:
-                enemies.extend(cls.generate_sub_wave(steps, count, enemy_type, args=args, kwargs=kwargs, offset=offset))
+                enemies.extend(cls.generate_sub_wave(steps, count, enemy_class,
+                                                     args=args, kwargs=kwargs, offset=offset))
 
             offset += steps
 

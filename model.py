@@ -1,22 +1,27 @@
-import random
+"""
+High-level modelling classes for tower defence game
+"""
 
+from typing import Tuple, List
+
+from core import UnitManager, GameData
 from modules.ee import EventEmitter
 from modules.matrix import get_adjacent_cells
 
-from tower import SimpleTower
-from enemy import SimpleEnemy
+from tower import AbstractTower
+from enemy import AbstractEnemy
 from path import Path
-from type_hints import Point2DInt_T, Tuple
 
 __author__ = "Benjamin Martin and Brae Webb"
 __copyright__ = "Copyright 2018, The University of Queensland"
 __license__ = "MIT"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 CELL_SIZE = 60
 PIXEL_SIZE = (24, 12)
 
 GRID_SIZE = (6, 6)
+
 
 class GridCoordinateTranslator:
     """Translates coordinates between cells in a grid (column, row) & pixels (x, y)
@@ -24,9 +29,9 @@ class GridCoordinateTranslator:
     Cells are treated as square
     """
     # cell is frequently used as a shorthand for cell position, as with pixel
-    cells: Point2DInt_T  # The number of (column, row) cells in the grid
+    cells: Tuple[int, int]  # The number of (column, row) cells in the grid
     cell_size: int  # The number of pixels wide & high each cell is
-    pixels: Point2DInt_T  # The number of (x, y) pixels in the grid
+    pixels: Tuple[int, int]  # The number of (x, y) pixels in the grid
 
     def __init__(self, cells: Tuple[int, int] = PIXEL_SIZE,
                  cell_size: int = CELL_SIZE):
@@ -48,6 +53,17 @@ class GridCoordinateTranslator:
         columns, rows = self.cells
 
         return 0 <= column < columns and 0 <= row < rows
+
+    def is_pixel_valid(self, pixel):
+        """(bool) Returns True iff 'cell' position exists in the grid
+        
+        Note, bottom-right most valid consists of coordinates that are
+        length of their axis minus one. I.e. in a 600x400 grid, the
+        bottom-right most valid pixel is (599, 399)."""
+        x, y = pixel
+        max_x, max_y = self.pixels
+
+        return 0 <= x < max_x and 0 <= y < max_y
 
     def cell_to_pixel_centre(self, cell):
         """(int, int) Returns the pixel position at the centre of 'cell'"""
@@ -101,6 +117,8 @@ class GridCoordinateTranslator:
             yield (0, y), (width, y)
 
 
+
+
 class TowerGame(EventEmitter):
     """Model for a game of tower defence"""
     _current_step = -1
@@ -121,17 +139,23 @@ class TowerGame(EventEmitter):
 
         self.obstacles = []
 
-        for position, tower in self.towers.items():
-            tower.position = self.grid.cell_to_pixel_centre(position)
-
         self.enemies = []
         self._unspawned_enemies = []
+
+        # Game data to be passed to units when stepped
+        # It's poor form to pass entire game model, so distinct object is
+        # used without special methods (i.e. step methods)
+        self._data = GameData()
+        self._data.enemies = UnitManager(self.grid.pixels)
+        self._data.obstacles = UnitManager(self.grid.pixels)
+        self._data.towers = self.towers
+        self._data.path = self.path
+        self._data.grid = self.grid
 
     def is_wave_over(self):
         """(bool) Returns True iff there is no wave in progress"""
         return len(self._unspawned_enemies) == 0 and len(self.enemies) == 0
 
-    # TODO: add property for active tower to get_neighbours in generate_path & refactor this
     def generate_path(self, *extra_towers):
         """
         Determine if a valid path can be made with extra towers added.
@@ -181,11 +205,11 @@ class TowerGame(EventEmitter):
             raise KeyError(f"No tower exists at {cell}")
 
         tower = self.towers.pop(cell)
-        self.path = self.generate_path()
+        self._data.path = self.path = self.generate_path()
 
         return tower
 
-    def place(self, cell, tower_type=SimpleTower):
+    def place(self, cell, tower_type=AbstractTower):
         """
         Attempt to place a tower in the given grid position
 
@@ -219,15 +243,55 @@ class TowerGame(EventEmitter):
             return False
 
         self.towers[cell] = tower
-        self.path = self.generate_path()
+        old_path = self.path
+        self._data.path = self.path = self.generate_path()
+
+        self._resolve_problems_after_placement(cell, old_path)
+
         return True
+
+    def _resolve_problems_after_placement(self, cell, old_path):
+        """Handles any problematic enemies after a tower is placed.
+        Problems are handled by moving them to the closest free cell,
+        with a preference for their previous cell.
+
+        Parameters:
+            cell (tuple<int, int>): The cell in which a tower was placed
+            old_path (Path): The previous path, before the tower was placed        
+        """
+        # find enemies in this cell
+        problems: List[AbstractEnemy] = []
+        for enemy in self.enemies:
+            enemy_cell = self.grid.pixel_to_cell(enemy.position)
+            if cell == enemy_cell:
+                problems.append(enemy)
+
+        if len(problems):
+            sources = set(old_path.get_sources(cell))
+            for path_cell, _ in self.path.get_best_path():
+                if path_cell in sources:
+                    source = path_cell
+                    break
+            else:
+                source = next(iter(sources))
+
+            delta = tuple(b - a for a, b in zip(source, cell))
+
+            # move problem enemies back
+            for enemy in problems:
+                relative_cell = tuple(c + 10 / 12 * d / 2 for c, d in zip(source, delta))
+                position = self.grid.cell_to_pixel_centre(relative_cell)
+                enemy.position = position
 
     def _step_obstacles(self):
         """Performs a single time step for all obstacles"""
         remaining_obstacles = []
         for obstacle in self.obstacles:
-            if obstacle.step():
+            persist, new_obstacles = obstacle.step(self._data)
+            if persist:
                 remaining_obstacles.append(obstacle)
+            if new_obstacles:
+                remaining_obstacles.extend(new_obstacles)
 
         self.obstacles = remaining_obstacles
 
@@ -244,7 +308,7 @@ class TowerGame(EventEmitter):
                 continue
 
             # keep enemies who are still in bounds
-            if enemy.step(self.grid, self.path):
+            if enemy.step(self._data):
                 remaining_enemies.append(enemy)
             else:
                 escaped_enemies.append(enemy)
@@ -262,15 +326,10 @@ class TowerGame(EventEmitter):
         """Performs a single time step for all towers"""
         # process tower abilities (attacks, etc.)
         for tower in self.towers.values():
-            tower.step()
-            for enemy in self.enemies:
-                if tower.is_position_in_range(enemy.get_real_position()):
+            obstacles = tower.step(self._data)
 
-                    # TODO: replace with generic
-                    obstacles = tower.attack(enemy)
-
-                    if obstacles:
-                        self.obstacles.extend(obstacles)
+            if obstacles:
+                self.obstacles.extend(obstacles)
 
     def _spawn_enemies(self):
         """Spawn all the enemies to be spawned in the current time-step"""
@@ -279,16 +338,14 @@ class TowerGame(EventEmitter):
             start_step, enemy = self._unspawned_enemies[-1]
 
             # ensure they are meant to be spawned in this step
-            if start_step <= self._current_step:
-                self._unspawned_enemies.pop()
-
-                # spawn enemy
-                position = self.grid.cell_to_pixel_centre(self.path.start)
-
-                enemy.position = position
-                self.enemies.append(enemy)
-            else:
+            if start_step > self._current_step:
                 break
+
+            self._unspawned_enemies.pop()
+
+            # move enemy to spawn
+            enemy.position = self.grid.cell_to_pixel_centre(self.path.start)
+            self.enemies.append(enemy)
 
     def step(self):
         """Performs a single time step of the game
@@ -299,6 +356,17 @@ class TowerGame(EventEmitter):
         self._current_step += 1
 
         if self._current_step % 2 == 0:
+            self._data.enemies.clear()
+            self._data.obstacles.clear()
+
+            for enemy in self.enemies:
+                if self.grid.is_pixel_valid(enemy.position):
+                    self._data.enemies.add_unit(enemy)
+            
+            for obstacle in self.obstacles:
+                if self.grid.is_pixel_valid(obstacle.position):
+                    self._data.obstacles.add_unit(obstacle)
+
             # perform all step actions
             self._step_obstacles()
             self._step_enemies()
@@ -308,8 +376,14 @@ class TowerGame(EventEmitter):
         return len(self._unspawned_enemies) or len(self.enemies)
 
     def reset(self):
-        self.towers = {}
+        """Resets the game"""
+        self.towers.clear()
+        self.enemies = []
+        self.obstacles = []
         self._unspawned_enemies = []
+        self._data.path = self.path = self.generate_path()
+        self._data.enemies.clear()
+        self._data.obstacles.clear()
 
     def queue_wave(self, wave, clear=False):
         """Queues a wave of enemies to spawn into the game
@@ -332,28 +406,15 @@ class TowerGame(EventEmitter):
         if clear:
             self.enemies = []
 
-    def send_wave(self, clear=False, enemies=20, steps=200):
-        """Send a wave of randomly generated enemies
-        
-        Parameters:
-            clear (bool): If True, clears the current enemies
-            enemies (int): The number of enemies to generate
-            steps (int): The number of steps over which to generate the enemies
-        """
-        print(enemies, steps)
-        offset = self._current_step + 1
-
-        wave = []
-
-        # randomly generate enemies and their start steps
-        for _ in range(enemies):
-            step = int(offset + steps - random.triangular(0, steps, 0))
-            wave.append((step, SimpleEnemy(self.grid.cell_size)))
-
-        self.queue_wave(wave, clear=clear)
-
-    # TODO: comment
     def attempt_placement(self, position):
+        """Checks legality of potentially placing a tower at 'position'
+        
+        Return:
+            tuple<bool, Path>: (legal, path) pair, where:
+                                - legal: True iff a tower can be placed at position
+                                - path: The new path if a tower were placed at position,
+                                        else the current path (if a tower can't be placed)
+        """
         # convert mouse position to grid coordinates
         grid_position = self.grid.pixel_to_cell(position)
 

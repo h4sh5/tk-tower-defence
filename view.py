@@ -1,22 +1,22 @@
 """GUI Elements for a Tower Defence game"""
 
 import tkinter as tk
-import math
 
-from utilities import rotate_point
-from tower_view import TowerView
-from range_view import RangeView
+from advanced_view import TowerView, RangeView, EnemyView, ObstacleView
 
 __author__ = "Benjamin Martin and Brae Webb"
 __copyright__ = "Copyright 2018, The University of Queensland"
 __license__ = "MIT"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 
 class GameView(tk.Canvas):
     """Game view which displays the user interface for the Towers game"""
 
-    def __init__(self, master, size=(6, 6), cell_size=40, **kwargs):
+    def __init__(self, master, *args, size=(6, 6), cell_size=40,
+                 tower_view_class=TowerView, range_view_class=RangeView,
+                 enemy_view_class=EnemyView, obstacle_view_class=ObstacleView,
+                 **kwargs):
         """
         Constructs a GameView inside the tkinter master widget
 
@@ -24,6 +24,10 @@ class GameView(tk.Canvas):
             master (tk.Tk|tk.Frame): The parent widget
             size (tuple<int, int>): The (row, column) size of the grid
             cell_size (int): The size of each cell in the game, in pixels
+            tower_view_class (Class<TowerView>): The class to draw towers
+            range_view_class (Class<RangeView>): The class to draw ranges  
+            enemy_view_class (Class<EnemyView>): The class to draw enemies
+            obstacle_view_class (Class<ObstacleView>): The class to draw obstacles
             **kwargs: Any other keyword arguments for the Canvas constructor
         """
 
@@ -33,149 +37,114 @@ class GameView(tk.Canvas):
         self.width, self.height = width, height = tuple(i * self.cell_size
                                                         for i in self.size)
 
-        tk.Canvas.__init__(self, master, width=width, height=height, **kwargs,
-                           highlightthickness=0)
+        tk.Canvas.__init__(self, master, *args, width=width, height=height,
+                           highlightthickness=0, **kwargs)
 
-    @staticmethod
-    def calculate_bounds(position, size):
-        """
-        Calculate the top left and bottom right coordinates of a position with
-        a given size
-
-        Parameters:
-            position (tuple<int, int>): The middle position to calculate for
-            size (tuple<int, int>): The width and height of the item
-
-        Returns:
-            tuple<tuple<int, int>,
-                  tuple<int, int>>: The top left and bottom right positions
-        """
-        x, y = position
-        width, height = size
-
-        top_left = x - width // 2, y - height // 2
-        bottom_right = x + width // 2, y + height // 2
-
-        return top_left, bottom_right
+        self.tower_view_class = tower_view_class
+        self.range_view_class = range_view_class
+        self.enemy_view_class = enemy_view_class
+        self.obstacle_view_class = obstacle_view_class
 
     def draw_borders(self, borders, fill='old lace'):
         """
-        Draw the border lines of the game view
+        Draws the border lines of the game view, after first removing any existing
 
         Parameters:
             borders (iter<tuple<int, int>,
                           tuple<int, int>>): A series of pixel positions for
-                                             laying out the borders of the view
+                                             laying out the borders of the view.
             fill (str): The colour of the borders to draw
         """
+        self.delete('border')
         for start, end in borders:
             self.create_line(start, end, fill=fill, tag='border')
 
     def draw_enemies(self, enemies):
         """
-        Draw a list of enemies to the view, simultaneously removing previous
-        enemies
+        Draws all enemies, after first removing any existing
 
         Parameters:
-            enemies (list<AbstractEnemy>): A list of enemies to draw to the view
+            enemies (list<AbstractEnemy>): A list of enemies to draw to the view.
         """
         self.delete('enemy')
         for enemy in enemies:
-            top_left, bottom_right = self.calculate_bounds(enemy.position,
-                                                           enemy.size)
-
-            # create
-            self.create_oval(top_left, bottom_right, tags='enemy',
-                             fill='white smoke')
-            extent = enemy.percentage_health() * 360
-            if extent == 360:  # because tkinter is lame
-                extent = 359.9999
-
-            self.create_arc(top_left, bottom_right, tags='enemy',
-                            fill=enemy.colour, start=45, extent=-extent,
-                            outline='')
+            self.enemy_view_class.draw(self, enemy)
 
     def draw_towers(self, towers):
         """
-        Draw a list of towers to the view, simultaneously removing previous
-        towers
+        Draws all towers, after first removing any existing
 
         Parameters:
-            towers (list<AbstractTower>): A list of towers to draw to the view
+            towers (dict{tuple(int, int), AbstractTower}):
+                Towers to draw to the view.
+                dict contains a mapping of cell position to tower.
         """
         self.delete('tower')
         for tower in towers.values():
-            TowerView.draw(self, tower, cell_size=self.cell_size)
+            self.tower_view_class.draw(self, tower)
 
         self.tag_raise('shadow')
 
     def draw_obstacles(self, obstacles):
         """
-        Draw a list of obstacles to the view, simultaneously removing previous
-        obstacles
+        Draws all obstacles, after first removing any existing
 
         Parameters:
-            obstacles (list<Unit>): A list of obstacles to draw to the view
+            obstacles (list<Unit>): A list of obstacles to draw to the view.
         """
         self.delete('obstacle')
-        # assuming missile
-        for missile in obstacles:
-            x, y = missile.position
-
-            length, width = missile.size
-
-            dx, dy = rotate_point((length / 2, width / 2), missile.rotation)
-
-            head = x + dx, y + dy
-            tail = x - dx, y - dy
-
-            self.create_line(head, tail, tag='obstacle')
+        for obstacle in obstacles:
+            self.obstacle_view_class.draw(self, obstacle)
 
     def draw_path(self, coordinates):
         """
-        Draws a path on the game view
-        Useful to preview where the enemies will travel after placing a tower
+        Draws a path on the game view, after first removing any existing
+        Useful to preview where the enemies will travel after placing a tower.
         
         Parameters:
-            coordinates (list[tuple[int, int]]): A list of (x, y) coordinate pairs
+            coordinates (list[tuple[int, int]]): A list of (x, y) coordinate pairs.
         """
 
         self.delete('path')
-        tag = self.create_line(coordinates, tag='path', dash=(2, 4))
+        #changed path colour to red
+        tag = self.create_line(coordinates, tag='path', dash=(2, 4), fill='red')
         self.tag_lower(tag)
         self.tag_lower('border')
 
     def draw_preview(self, tower, legal=True):
         """
-        Draws a shadow of a tower over the game view
+        Draws a preview of a tower over the game view, after first removing any existing
         Used for visual aid when placing a tower
 
         Parameter:
-            tower (AbstractTower|None): The shadow tower or None if no tower
+            tower (AbstractTower|None): The preview tower or None if no tower
                                         should be drawn
         """
+
         self.delete("shadow", "range")
 
         if tower is None:
             return
 
-        # draw a hover tower for placement
+        # draw a preview tower for placement
         if legal:
-            tags = RangeView.draw(self, tower.range, tower.position,
-                                  tower.cell_size)
+            # range
+            tags = self.range_view_class.draw(self, tower.range, tower.position,
+                                              tower.cell_size)
             for tag in tags:
                 self.itemconfig(tag, outline='green')
+                self.addtag_withtag('shadow', tag)
 
-        top_left, bottom_right = tower.get_bounding_box()
-
-        left, top = top_left
-        right, bottom = bottom_right
-
-        colour = tower.colour
-
-        if legal:
-            # TODO abstract
-            self.create_oval(top_left, bottom_right, tag='shadow', fill=colour)
+            # tower
+            tags = self.tower_view_class.draw(self, tower)
+            for tag in tags:
+                self.addtag_withtag('shadow', tag)
+                self.dtag(tag, 'tower')
         else:
-            self.create_line(top_left, bottom_right, tag='shadow', fill='black')
-            self.create_line((right, top), (left, bottom), tag='shadow', fill='black')
+            top_left, bottom_right = tower.get_bounding_box()
+
+            left, top = top_left
+            right, bottom = bottom_right
+
+            self.create_line(top_left, bottom_right, tag='shadow', fill='white') #fill was black
+            self.create_line((right, top), (left, bottom), tag='shadow', fill='white') #fill was black
