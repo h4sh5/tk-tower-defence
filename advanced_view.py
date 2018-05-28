@@ -52,7 +52,7 @@ import random
 
 from range_ import AbstractRange, DonutRange, PlusRange, CircularRange
 from tower import AbstractTower, MissileTower, PulseTower, SimpleTower, \
-    AbstractObstacle, Missile, Pulse, LaserTower, Laser
+    AbstractObstacle, Missile, Pulse, LaserTower, Laser, Inferno, InfernoTower
 from enemy import AbstractEnemy, SuperRichardEnemy
 from utilities import rotate_point
 
@@ -166,6 +166,7 @@ class TowerView(SimpleView):
         (PulseTower, '_draw_pulse'),
         (AbstractTower, '_draw_simple'),
         (LaserTower, '_draw_simple'), 
+        (InfernoTower, '_draw_pulse'),
     ])
 
     @classmethod
@@ -215,6 +216,7 @@ class TowerView(SimpleView):
         body = canvas.create_oval(top_left, bottom_right, tag='tower', fill=colour)
         tags = [body]
 
+        '''
         angle_step = math.pi/2
         for i in range(4):
             angle = i * angle_step
@@ -224,7 +226,7 @@ class TowerView(SimpleView):
 
             tag = canvas.create_line(x + dx/2, y + dy/2, x + dx, y + dy, tag='tower')
 
-            tags.append(tag)
+            tags.append(tag)'''
 
 
 
@@ -330,38 +332,40 @@ class EnemyView(SimpleView):
 
         top_left, bottom_right = enemy.get_bounding_box()
 
-        # create
-        # outline = canvas.create_oval(top_left, bottom_right, tags='enemy',
-        #                              fill='red') #fill was 'white smoke'
-
-        picture = tk.PhotoImage(file="images/richard.gif")
-        picture.zoom(2,2) #half the image
-        #outline = canvas.create_oval(top_left, bottom_right, tags='enemy', fill='white smoke')
-
-        richard = canvas.create_image((top_left[0], top_left[1]+30), tags='enemy', image=picture)
-        canvas.richard = picture # to preserve it from garbage collection
-
-
-        y = 30
-
 
         health_percent = enemy.percentage_health()
 
         health_bar_width = (bottom_right[0] - top_left[0]) * health_percent
 
+        if health_percent <= 0.5:
+            #enranged mode if health is under half
+            picture = tk.PhotoImage(file="images/richard_angry.gif")
+            picture.zoom(2,2) #half the scale of the image
+
+        else:
+            picture = tk.PhotoImage(file="images/richard.gif")
+            picture.zoom(2,2)
+
+        richard = canvas.create_image((top_left[0], top_left[1]+30), tags='enemy', image=picture)
+        canvas.richard = picture # to preserve it from garbage collection
+
 
         #change width and colour of the health bar according to health percentage
-
+        health_bar_offset_x = 30
+        health_bar_offset_y = 50 
         if health_percent >= 0.8:
-            health_bar = canvas.create_rectangle((top_left[0], top_left[1] - y), ((top_left[0]+health_bar_width), top_left[1] - y), 
+            health_bar = canvas.create_rectangle((top_left[0]-health_bar_offset_x, top_left[1] - health_bar_offset_y), 
+                ((top_left[0]-health_bar_offset_x+health_bar_width), top_left[1] - health_bar_offset_y), 
                 fill='green', outline='green', tag='enemy')
 
         elif 0.4 <= health_percent < 0.8:
-            health_bar = canvas.create_rectangle((top_left[0], top_left[1] - y), ((top_left[0]+health_bar_width), top_left[1] - y), 
+            health_bar = canvas.create_rectangle((top_left[0]-health_bar_offset_x, top_left[1] - health_bar_offset_y), 
+                ((top_left[0]-30+health_bar_width), top_left[1] - health_bar_offset_y), 
                 fill='yellow', outline='yellow', tag='enemy')
 
         elif 0.1 <= health_percent < 0.4:
-            health_bar = canvas.create_rectangle((top_left[0], top_left[1] - y), ((top_left[0]+health_bar_width), top_left[1] - y), 
+            health_bar = canvas.create_rectangle((top_left[0]-health_bar_offset_x, top_left[1] - health_bar_offset_y), 
+                ((top_left[0]-health_bar_offset_x+health_bar_width), top_left[1] - health_bar_offset_y), 
                 fill='red', outline='red', tag='enemy')
 
         elif health_percent <= 0.1 :
@@ -384,6 +388,7 @@ class ObstacleView(SimpleView):
         (Missile, '_draw_missile'),
         (Pulse, '_draw_pulse'),
         (Laser, '_draw_laser'),
+        (Inferno, '_draw_inferno'),
     ])
 
     @classmethod
@@ -437,7 +442,7 @@ class ObstacleView(SimpleView):
     #new laser that is actually a laser
     @classmethod
     def _draw_laser(cls, canvas: tk.Canvas, laser: Laser):
-        """Draws a laser"""
+        """Draws a laser with random colours"""
 
         #delete the last laser beam
         canvas.delete('laser')
@@ -454,7 +459,9 @@ class ObstacleView(SimpleView):
         head = x + dx, y + dy
         tail = x, y
 
-        return canvas.create_line(head, tail, tag='laser', fill="red", width=random.random()*3) #was #00ffff (aqua)
+        colour = random.choice(('red','lightblue','yellow','white'))
+
+        return canvas.create_line(head, tail, tag='laser', fill=colour, width=random.random()*3) #was #00ffff (aqua)
 
 
 
@@ -469,3 +476,15 @@ class ObstacleView(SimpleView):
         tail = x - radius, y - radius
 
         return canvas.create_oval(head, tail, fill=pulse.colour, tag='obstacle')
+
+    @classmethod
+    def _draw_inferno(cls, canvas: tk.Canvas, inferno: Inferno):
+        """Draws an inferno"""
+
+        x, y = inferno.position
+        radius = inferno.size[0]
+
+        head = x + radius, y + radius
+        tail = x - radius, y - radius
+
+        return canvas.create_oval(head, tail, fill=inferno.colour, outline=inferno.colour, tag='obstacle')

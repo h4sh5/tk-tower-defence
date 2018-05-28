@@ -5,6 +5,8 @@ All enemies should inherit from AbstractEnemy (either directly or from one of it
 
 from core import Unit
 from utilities import rectangles_intersect, get_delta_through_centre
+import random
+
 
 __author__ = "Benjamin Martin and Brae Webb"
 __copyright__ = "Copyright 2018, The University of Queensland"
@@ -58,6 +60,9 @@ class AbstractEnemy(Unit):
         """
         raise NotImplementedError("damage method must be implemented by subclass")
 
+    def __repr__(self):
+        return self.name
+
 
 class SimpleEnemy(AbstractEnemy):
     """Basic type of enemy"""
@@ -109,7 +114,10 @@ class SimpleEnemy(AbstractEnemy):
                 partial_movement = min(offset_length, movement)
 
             cell_position = grid.pixel_to_cell(self.position)
-            delta = path.get_best_delta(cell_position)
+            try:
+                delta = path.get_best_delta(cell_position)
+            except KeyError:
+                return None
 
             # Ensures enemy will move to the centre before moving toward delta
             dx, dy = get_delta_through_centre(cell_offset, delta)
@@ -122,6 +130,18 @@ class SimpleEnemy(AbstractEnemy):
 
         intersects = rectangles_intersect(*self.get_bounding_box(), (0, 0), grid.pixels)
         return intersects or grid.pixel_to_cell(self.position) in path.deltas
+
+
+class SwarmEnemy(SimpleEnemy):
+    """A type of enemy that is faster and smaller than SimpleEnemy,
+    but comes in a swarm. Has a random blue or yellow colour to mimic python"""
+
+    name = 'Swarm Enemy'
+    colour = random.choice(('#2b75ac', '#ffde05')) #python blue and yellow
+    points = 3
+
+    def __init__(self, grid_size=(.15, .15), grid_speed=8/60, health=40):
+        super().__init__(grid_size, grid_speed, health)
 
 
 class InvincibleEnemy(SimpleEnemy):
@@ -175,6 +195,7 @@ class HardenedEnemy(AbstractEnemy):
         grid = data.grid
         path = data.path
 
+
         # Repeatedly move toward next cell centre as much as possible
         movement = self.grid_speed
         while movement > 0:
@@ -200,19 +221,35 @@ class HardenedEnemy(AbstractEnemy):
 
             movement -= partial_movement
 
+
+
         intersects = rectangles_intersect(*self.get_bounding_box(), (0, 0), grid.pixels)
         return intersects or grid.pixel_to_cell(self.position) in path.deltas
 
 
 class SuperRichardEnemy(AbstractEnemy):
-    """A super boss enemy."""
+    """A super boss enemy.
+    Upon half health he will start spawing swarm enemies.
+    This enemy does not follow the path but head straight to the goal.
+    """
     name = "Super Richard"
     colour = "red"
 
     points = 200
+    health = 1000
 
-    def __init__(self, grid_size=(.6, .6), grid_speed=1/60, health=500):
+    def __init__(self, spawned_step, game, grid_size=(.6, .6), grid_speed=2.5/60, health=health):
+        '''
+        parameters:
+            spawned_step (int): the number of steps when it is spawned
+            game (TowerGame): instance of the game
+        '''
         super().__init__(grid_size, grid_speed, health)
+        self.spawned_step = spawned_step
+        self.spawn_swarm = game.queue_wave
+        self.game = game
+
+        self.swarm_count = 0
 
     def damage(self, damage, type_):
         """Inflict damage on the enemy
@@ -238,6 +275,21 @@ class SuperRichardEnemy(AbstractEnemy):
         """
         grid = data.grid
         path = data.path
+
+
+        #starts generating swarm enemies if below half life
+        if self.health/SuperRichardEnemy.health <= 0.5: 
+            print('rage mode!!')
+            swarm = [(5,  SwarmEnemy())]
+            
+            if self.swarm_count < 10:
+                for i in range(random.randint(2,5)):
+                    
+                    for step, enemy in swarm:
+                        enemy.set_cell_size(self.game.grid.cell_size)
+
+                    self.spawn_swarm(swarm)
+                    self.swarm_count += 1
 
         # Repeatedly move toward next cell centre as much as possible
         movement = self.grid_speed

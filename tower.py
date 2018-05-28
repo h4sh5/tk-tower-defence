@@ -368,6 +368,7 @@ class Pulse(AbstractObstacle):
 
 
 
+
 class PulseTower(AbstractTower):
     """A tower that sends slow moving pulses out that damage all enemies in their path"""
     name = 'Pulse Tower'
@@ -473,28 +474,6 @@ class Laser(AbstractObstacle):
                 enemy.damage(self.damage, 'energy')
 
 
-                # if self._hit_count and len(self._damaged) >= self._hit_count:
-                #    return False, None
-
-        #radius = euclidean_distance(self.position, self.target.position)
-
-    
-        # if radius <= self.speed:
-        #     self.target.damage(self.damage, 'energy')
-        #     return False, None
-
-        
-
-
-        #accelerate with initial angle
-        
-        #this line not needed#angle = angle_between(self.position, self.target.position)
-
-        #dx, dy = polar_to_rectangular(self.speed, self._rotation)
-        #x, y = self.position
-        #self.position = x + dx, y + dy
-
-
         return True, None
 
 
@@ -552,6 +531,7 @@ class LaserTower(SimpleTower):
         # Rotate toward target
         angle = angle_between(self.position, target.position)
         partial_angle = rotate_toward(self.rotation, angle, self.rotation_threshold)
+        print(partial_angle)
 
         self.rotation = partial_angle
 
@@ -571,4 +551,94 @@ class LaserTower(SimpleTower):
 
 
         return [laser]
+
+class Inferno(Pulse):
+    '''a pulse that deals energy damage'''
+
+    colour = 'orange'
+    name = 'Inferno'
+
+    def step(self, units):
+        """Performs a time step for this pulse
+
+        Moves according to direction, damaging any enemies that are collided with along the way
+        If hits is non-zero, this pulse expires if it has the number of enemies hit is at least 'hits',
+        else continues until off the grid
+
+        Parameters:
+            units.enemies (UnitManager): The unit manager to select targets from
+
+        Return:
+            (persist, new_obstacles) pair, where:
+                - persist (bool): True if the obstacle should persist in the game (else will be removed)
+                - new_obstacles (list[AbstractObstacle]): A list of new obstacles to add to the game, or None
+        """
+        dx, dy = tuple(self.speed * i for i in self.direction)
+
+        x, y = old_position = self.position
+        self.position = new_position = x + dx, y + dy
+
+        try:
+            old_bucket = units.enemies.get_bucket_for_position(old_position)
+            new_bucket = units.enemies.get_bucket_for_position(self.position)
+        except IndexError:
+            return False, None
+
+        for enemy in old_bucket.union(new_bucket):
+            if enemy in self._damaged:
+                continue
+
+            x1, y1 = old_position
+            x2, y2 = new_position
+
+            if x2 < x1:
+                x1, x2 = x2, x1
+
+            if y2 < y1:
+                y1, y2 = y2, y1
+
+            tl1, br1 = (x1, y1), (x2, y2)
+            tl2, br2 = enemy.get_bounding_box()
+
+            if rectangles_intersect(tl1, br1, tl2, br2):
+                enemy.damage(self.damage, 'energy')
+                self._damaged.add(enemy)
+
+                if self._hit_count and len(self._damaged) >= self._hit_count:
+                    return False, None
+
+        return True, None
+
+class InfernoTower(PulseTower):
+    '''a pulse tower that shoots infernos'''
+    colour = 'orange'
+    cool_down_steps = 3
+
+    range = PlusRange(0.5, 2.5)
+
+
+    def step(self, units):
+        """Fires pulses"""
+        self.cool_down.step()
+
+        if not self.cool_down.is_done():
+            return None
+
+        target = self.get_unit_in_range(units.enemies)
+
+        if target is None:
+            return None
+
+        self.cool_down.start()
+
+        infernos = []
+
+        for direction in Inferno.DIRECTIONS:
+            inferno = Inferno(self.position, self.cell_size, direction)
+            inferno.move_by(Point2D(*direction) * (.4 * self.cell_size))
+            infernos.append(inferno)
+
+        return infernos
+
+
 

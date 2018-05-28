@@ -189,6 +189,10 @@ class TowerGame(EventEmitter):
 
         return path
 
+    def get_current_step(self):
+        '''(int) returns the current step'''
+        return self._current_step
+
     def remove(self, cell):
         """Removes a tower from the given 'cell' position
         
@@ -332,6 +336,7 @@ class TowerGame(EventEmitter):
                 self.obstacles.extend(obstacles)
 
     def _spawn_enemies(self):
+        print('spawn_enemies:',self._unspawned_enemies)
         """Spawn all the enemies to be spawned in the current time-step"""
         while len(self._unspawned_enemies):
             # gather next enemy to be spawned
@@ -351,7 +356,7 @@ class TowerGame(EventEmitter):
         """Performs a single time step of the game
 
         Returns:
-            (bool): True iff the game is still running
+            (bool): True if the game is still running
         """
         self._current_step += 1
 
@@ -372,6 +377,8 @@ class TowerGame(EventEmitter):
             self._step_enemies()
             self._step_towers()
             self._spawn_enemies()
+
+
 
         return len(self._unspawned_enemies) or len(self.enemies)
 
@@ -396,6 +403,7 @@ class TowerGame(EventEmitter):
                 The second tuple element is the enemy object
             clear (bool): Clears existing wave, iff True
         """
+        
         wave = [(step + self._current_step, enemy) for step, enemy in wave]
 
         if not clear:

@@ -1,8 +1,8 @@
 import tkinter as tk
 
 from model import TowerGame
-from tower import SimpleTower, MissileTower, LaserTower
-from enemy import SimpleEnemy, HardenedEnemy, SuperRichardEnemy
+from tower import SimpleTower, MissileTower, LaserTower, InfernoTower
+from enemy import SimpleEnemy, HardenedEnemy, SuperRichardEnemy, SwarmEnemy
 from utilities import Stepper
 from view import GameView
 from level import AbstractLevel
@@ -21,11 +21,12 @@ class MyLevel(AbstractLevel):
     """A simple game level containing examples of how to generate a wave"""
     waves = 20
 
-    def get_wave(self, wave):
+    def get_wave(self, wave, game):
         """Returns enemies in the 'wave_n'th wave
 
         Parameters:
             wave_n (int): The nth wave
+            game (TowerGame): the instance of the game
 
         Return:
             list[tuple[int, AbstractEnemy]]: A list of (step, enemy) pairs in the
@@ -36,7 +37,8 @@ class MyLevel(AbstractLevel):
         if wave == 1:
             # A hardcoded singleton list of (step, enemy) pairs
 
-            enemies = [(1, SuperRichardEnemy()), (10, SimpleEnemy())]
+            enemies = [ (10, SimpleEnemy()), (20, SuperRichardEnemy(20, game)) ]
+
 
         elif wave == 2:
             # A hardcoded list of multiple (step, enemy) pairs
@@ -256,7 +258,9 @@ class TowerGameApp(Stepper):
         self._towers = towers = [
             SimpleTower,
             MissileTower,
-            LaserTower
+            InfernoTower,
+            LaserTower,
+            
         ]
 
         # Create views for each tower & store to update if availability changes
@@ -401,7 +405,7 @@ class TowerGameApp(Stepper):
         
         #clears the enemies
         self._view.delete("enemy","tower","obstacles","laser")
-        self._game.enemies = [] 
+        self._game.queue_wave([], True) #clear all enemies
         self._setup_game()
 
 
@@ -452,6 +456,7 @@ class TowerGameApp(Stepper):
         Returns:
             (bool) True if the game is still running
         """
+        
         self._game.step()
         self.refresh_view()
 
@@ -572,7 +577,7 @@ class TowerGameApp(Stepper):
             self._wave_button.config(state=tk.DISABLED)
 
         # Generate wave and enqueue
-        wave = self._level.get_wave(self._wave)
+        wave = self._level.get_wave(self._wave, self._game)
         for step, enemy in wave:
             enemy.set_cell_size(self._game.grid.cell_size)
 
