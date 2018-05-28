@@ -156,7 +156,11 @@ class ShopTowerView(tk.Frame):
         Constructs an individual shop tower view including the tower on display
         and the command to execute upon clicked.
     
-        tower (AbstractTower)
+        tower (AbstractTower): the tower to display on the frame
+        click_command: the command to run when the shop
+            view is clicked on
+
+        *args: 
 
         '''
         super().__init__(master, **kwargs)
@@ -188,6 +192,7 @@ class ShopTowerView(tk.Frame):
             enabled (bool): if the player can afford the tower. If not the text
             will be red
         '''
+        self._enabled = enabled
         if enabled:
             self._label.configure(fg='black')
         else:
@@ -314,20 +319,8 @@ class TowerGameApp(Stepper):
         # Get ready for the game
         self._setup_game()
 
-        # Remove the relevant lines while attempting the corresponding section
-        # Hint: Comment them out to keep for reference
-
-        # # Task 1.2 (Tower Placement): remove these lines
-        # towers = [
-        #     ([(2, 2), (3, 0), (4, 1), (4, 2), (4, 3)], SimpleTower),
-        #     ([(2, 5)], MissileTower)
-        # ]
-
-        # for positions, tower in towers:
-        #     for position in positions:
-        #         self._game.place(position, tower_type=tower)
-
-
+        #laser count
+        self._laser_count = 0
 
     def setup_menu(self):
         '''
@@ -338,10 +331,11 @@ class TowerGameApp(Stepper):
         self._filemenu = tk.Menu(self._menu)
 
         self._filemenu.add_command(label="New Game", command=self._new_game)
+        self._filemenu.add_command(label="High Scores", command=self._handle_highscores)
         self._filemenu.add_command(label="Exit", command=self._exit)
+
         self._menu.add_cascade(label="File", menu=self._filemenu)
 
-    
 
     def _toggle_paused(self, paused=None):
         """Toggles or sets the paused state
@@ -370,6 +364,8 @@ class TowerGameApp(Stepper):
         self._lives = 20
 
         self._won = False
+
+        self._highscores = {}
 
         # Task 1.3 (Status Bar): Update status here
         self._status_bar.set_wave(self._wave)
@@ -401,10 +397,9 @@ class TowerGameApp(Stepper):
         '''
         restarts the game
         '''
-
         
         #clears the enemies
-        self._view.delete("enemy","tower")
+        self._view.delete("enemy","tower","obstacles","laser")
         self._game.enemies = [] 
         self._setup_game()
 
@@ -428,6 +423,15 @@ class TowerGameApp(Stepper):
 
         confirm_window.bind("<Return>", handle_return)
 
+    def _handle_highscores(self):
+        '''displays highscores'''
+        label_txt = "High scores:\n"
+        for player in self._highscores:
+            label_txt += "%s: %s\n" %(player, self._highscores[player])
+
+        highscore_window = tk.Toplevel(self._master)
+        label = tk.Label(highscore_window, text=label_txt)
+        label.pack()
 
 
     def refresh_view(self):
@@ -449,6 +453,14 @@ class TowerGameApp(Stepper):
         """
         self._game.step()
         self.refresh_view()
+
+        if self._laser_count < 20:
+            self._laser_count += 1
+
+        else:
+            self._laser_count = 0
+            self._view.delete('laser')
+
 
         return not self._won
 
@@ -510,7 +522,6 @@ class TowerGameApp(Stepper):
         legal, grid_path = self._game.attempt_placement(position)
 
         if legal and (self._current_tower.get_value() <= self._coins):
-            print('test')
             self._coins = self._coins - self._current_tower.get_value()            
             self._status_bar.set_coins(self._coins)
 
@@ -623,6 +634,27 @@ class TowerGameApp(Stepper):
             self._handle_game_over(won=True)
 
 
+    def record_high_score_from_game_over(self, entry_box):
+        '''record the highscore of that player and add it to the highscore 
+        list, then destroy the game over dialog box and show the highscore 
+        box.
+
+        parameter:
+            player (string): name of the player
+            highscore (string): the highscore to record
+            entry_box (tk.Entry): the entry box to get the player's name and
+            destroy its parent from.
+        '''
+        player = entry_box.get()
+        self._highscores[player] = self._score
+        entry_box.master.destroy()
+
+        #show the high scores
+        self._handle_highscores()
+
+
+
+
     def _handle_game_over(self, won=False):
         """Handles game over
         
@@ -637,19 +669,25 @@ class TowerGameApp(Stepper):
         dialog_box.title("Game Over")
 
         if won:
-            message = "You won!"
+            message = "You won! Enter your name:"
         else:
-            message = "You lost!"
+            message = "You lost! Enter your name:"
 
         label = tk.Label(dialog_box, text=message)
-        label.pack(padx=50,pady=20)
+        label.pack(padx=50,pady=10)
 
-        ok_button = tk.Button(dialog_box, text="ok", command=dialog_box.destroy)
-        ok_button.pack()
+
+        highscore_prompt = tk.Entry(dialog_box)
+        highscore_prompt.pack(expand=True, pady=10)
+
+        ok_button = tk.Button(dialog_box, text="ok",
+         command=lambda entry_box=highscore_prompt: self.record_high_score_from_game_over(entry_box))
+        ok_button.pack(pady=10)
 
         #disable buttons if game over
         self._wave_button.config(state=tk.DISABLED)
         self._play_button.config(state=tk.DISABLED)
+
 
 
 

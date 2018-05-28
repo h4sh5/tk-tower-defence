@@ -48,6 +48,7 @@ and set the corresponding keyword argument in view.GameView
 
 import math
 import tkinter as tk
+import random
 
 from range_ import AbstractRange, DonutRange, PlusRange, CircularRange
 from tower import AbstractTower, MissileTower, PulseTower, SimpleTower, \
@@ -362,8 +363,10 @@ class ObstacleView(SimpleView):
         head = x + dx, y + dy
         tail = x - dx, y - dy
 
-        return canvas.create_line(head, tail, tag='obstacle')
+        return canvas.create_line(head, tail, tag='obstacle', fill='orange') # had no fill before (black)
 
+    '''
+    #old laser that works like a bullet
     @classmethod
     def _draw_laser(cls, canvas: tk.Canvas, laser: Laser):
         """Draws a laser"""
@@ -378,6 +381,30 @@ class ObstacleView(SimpleView):
         tail = x - dx, y - dy
 
         return canvas.create_line(head, tail, tag='obstacle', fill="red") #was #00ffff (aqua)
+    '''
+    #new laser that is actually a laser
+    @classmethod
+    def _draw_laser(cls, canvas: tk.Canvas, laser: Laser):
+        """Draws a laser"""
+
+        #delete the last laser beam
+        canvas.delete('laser')
+
+        x, y = laser.position
+
+        length, width = laser.size
+
+        dx, dy = rotate_point((length / 2, width / 2), laser.rotation)
+
+        #head = x + dx, y + dy
+        #tail = x - dx, y - dy
+
+        head = x + dx, y + dy
+        tail = x, y
+
+        return canvas.create_line(head, tail, tag='laser', fill="red", width=random.random()*3) #was #00ffff (aqua)
+
+
 
     @classmethod
     def _draw_pulse(cls, canvas: tk.Canvas, pulse: Pulse):

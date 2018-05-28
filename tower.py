@@ -13,6 +13,7 @@ from range_ import AbstractRange, CircularRange, PlusRange, DonutRange
 from utilities import Countdown, euclidean_distance, rotate_toward, angle_between, polar_to_rectangular, \
     rectangles_intersect
 
+
 __author__ = "Benjamin Martin"
 __copyright__ = "Copyright 2018, The University of Queensland"
 __license__ = "MIT"
@@ -415,11 +416,13 @@ class Laser(AbstractObstacle):
     rotation_threshold = (1 / 3) * math.pi
 
 
-    def __init__(self, position, cell_size, target: AbstractEnemy, size=.5,
-                 rotation: Union[int, float] = 0, grid_speed=.1, damage=10):
-
+    def __init__(self, position, cell_size, target: AbstractEnemy, size=30,
+                 rotation: Union[int, float] = 0, grid_speed=.5, damage=30):
+        
         super().__init__(position, (size, 0), cell_size, grid_speed=grid_speed, rotation=rotation, damage=damage)
         self.target = target
+        self._rotation = rotation
+
 
     def step(self, units):
         """Performs a time step for this missile
@@ -435,42 +438,81 @@ class Laser(AbstractObstacle):
                 - persist (bool): True if the obstacle should persist in the game (else will be removed)
                 - new_obstacles (list[AbstractObstacle]): A list of new obstacles to add to the game, or None
         """
+        
+        if self.target == None:
+            return False, None
+
         if self.target.is_dead():
             return False, None
 
+        
         # move toward the target
-        radius = euclidean_distance(self.position, self.target.position)
+        #for enemy in units.enemies:
+         #   radius = euclidean_distance(self.position, enemy.position)
 
-        if radius <= self.speed:
-            self.target.damage(self.damage, 'energy')
+            #if radius <= self.speed:
+                #enemy.damage(self.damage, 'energy')
+                #return False, None
+
+        # new approach to laser
+        x, y = old_position = self.position
+        dx, dy = polar_to_rectangular(self.speed, self._rotation)
+        self.position = new_position = x + dx, y + dy
+
+        self._hit_count = 1000 
+
+
+        try:
+            old_bucket = units.enemies.get_bucket_for_position(old_position)
+            new_bucket = units.enemies.get_bucket_for_position(self.position)
+        except IndexError:
             return False, None
 
-        # Rotate toward target and move
-        angle = angle_between(self.position, self.target.position)
-        self.rotation = rotate_toward(self.rotation, angle, self.rotation_threshold)
+        for enemy in old_bucket.union(new_bucket):
+            if -0.5 <= euclidean_distance(self.position, enemy.position) >= 0.5:
+                enemy.damage(self.damage, 'energy')
 
-        dx, dy = polar_to_rectangular(self.speed, self.rotation)
-        x, y = self.position
-        self.position = x + dx, y + dy
+
+                # if self._hit_count and len(self._damaged) >= self._hit_count:
+                #    return False, None
+
+        #radius = euclidean_distance(self.position, self.target.position)
+
+    
+        # if radius <= self.speed:
+        #     self.target.damage(self.damage, 'energy')
+        #     return False, None
+
+        
+
+
+        #accelerate with initial angle
+        
+        #this line not needed#angle = angle_between(self.position, self.target.position)
+
+        #dx, dy = polar_to_rectangular(self.speed, self._rotation)
+        #x, y = self.position
+        #self.position = x + dx, y + dy
+
 
         return True, None
 
 
 class LaserTower(SimpleTower):
-    """A tower that fires missiles that track a target"""
+    """A tower that fires lasers at a target"""
     name = 'Laser Tower'
     colour = '#6600FF' # purple-ish
 
-    cool_down_steps = 10
+    cool_down_steps = 1 #insanely fast
 
     base_cost = 50
     level_cost = 60
 
-    range = DonutRange(1.5, 4.5)
+    range = CircularRange(4)
 
     rotation_threshold = (1 / 3) * math.pi
 
-    def __init__(self, cell_size: int, grid_size=(.9, .9), rotation=math.pi * .25, base_damage=150, level: int = 1):
+    def __init__(self, cell_size: int, grid_size=(.9, .9), rotation=math.pi * .25, base_damage=2, level: int = 1):
         super().__init__(cell_size, grid_size=grid_size, rotation=rotation, base_damage=base_damage, level=level)
 
         self._target: AbstractEnemy = None
@@ -481,6 +523,7 @@ class LaserTower(SimpleTower):
         Invalid target is one of:
             - dead
             - out-of-range
+            - off the map
         
         Return:
             AbstractEnemy: Returns previous target, unless it is non-existent or invalid (see above),
@@ -489,7 +532,8 @@ class LaserTower(SimpleTower):
         """
         if self._target is None \
                 or self._target.is_dead() \
-                or not self.is_position_in_range(self._target.position):
+                or not self.is_position_in_range(self._target.position) \
+                or self._target.position[0] > 400:
             self._target = self.get_unit_in_range(units)
 
         return self._target
@@ -500,9 +544,11 @@ class LaserTower(SimpleTower):
 
         target = self._get_target(units.enemies)
 
+        # if there's no target or if the target is out of the map
         if target is None:
             return None
 
+        
         # Rotate toward target
         angle = angle_between(self.position, target.position)
         partial_angle = rotate_toward(self.rotation, angle, self.rotation_threshold)
@@ -516,12 +562,13 @@ class LaserTower(SimpleTower):
 
         # Spawn laser on tower
         laser = Laser(self.position, self.cell_size, target, rotation=self.rotation,
-                          damage=self.get_damage(), grid_speed=.3)
+                          damage=self.get_damage(), grid_speed=.5)
 
         # Move laser to outer edge of tower
         radius = self.grid_size[0] / 2
         delta = polar_to_rectangular(self.cell_size * radius, partial_angle)
         laser.move_by(delta)
+
 
         return [laser]
 
