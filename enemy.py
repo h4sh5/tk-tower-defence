@@ -137,10 +137,9 @@ class SwarmEnemy(SimpleEnemy):
     but comes in a swarm. Has a random blue or yellow colour to mimic python"""
 
     name = 'Swarm Enemy'
-    colour = random.choice(('#2b75ac', '#ffde05')) #python blue and yellow
     points = 3
 
-    def __init__(self, grid_size=(.15, .15), grid_speed=8/60, health=40):
+    def __init__(self, grid_size=(.15, .15), grid_speed=5.1/60, health=40):
         super().__init__(grid_size, grid_speed, health)
 
 
@@ -279,7 +278,7 @@ class SuperRichardEnemy(AbstractEnemy):
 
         #starts generating swarm enemies if below half life
         if self.health/SuperRichardEnemy.health <= 0.5: 
-            print('rage mode!!')
+
             swarm = [(5,  SwarmEnemy())]
             
             if self.swarm_count < 10:

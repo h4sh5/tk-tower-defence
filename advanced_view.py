@@ -53,7 +53,7 @@ import random
 from range_ import AbstractRange, DonutRange, PlusRange, CircularRange
 from tower import AbstractTower, MissileTower, PulseTower, SimpleTower, \
     AbstractObstacle, Missile, Pulse, LaserTower, Laser, Inferno, InfernoTower
-from enemy import AbstractEnemy, SuperRichardEnemy
+from enemy import AbstractEnemy, SuperRichardEnemy, SwarmEnemy
 from utilities import rotate_point
 
 __author__ = "Benjamin Martin"
@@ -293,6 +293,7 @@ class EnemyView(SimpleView):
     draw_methods = sort_draw_methods([
         (AbstractEnemy, '_draw_simple'),
         (SuperRichardEnemy, '_draw_richard'),
+        (SwarmEnemy, '_draw_swarm'),
     ])
 
     @classmethod
@@ -323,6 +324,26 @@ class EnemyView(SimpleView):
         fill = canvas.create_arc(top_left, bottom_right, tags='enemy',
                                  fill=enemy.colour, start=45, extent=-extent,
                                  outline='')
+
+        return [outline, fill]
+
+    @classmethod
+    def _draw_swarm(cls, canvas: tk.Canvas, enemy: AbstractEnemy):
+        """Draws an enemy"""
+
+        top_left, bottom_right = enemy.get_bounding_box()
+
+        # create
+        outline = canvas.create_oval(top_left, bottom_right, tags='enemy',
+                                     fill='white smoke')
+        extent = enemy.percentage_health() * 360
+        if extent == 360:  # because tkinter is lame
+            extent = 359.9999
+
+        colour = random.choice(['#256ba2','#fde53d'])
+        fill = canvas.create_arc(top_left, bottom_right, tags='enemy',
+                                 fill=colour, start=45, extent=-extent,
+                                 outline=colour)
 
         return [outline, fill]
 

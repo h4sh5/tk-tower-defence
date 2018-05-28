@@ -308,7 +308,7 @@ class Pulse(AbstractObstacle):
     DIRECTIONS = [NORTH, EAST, SOUTH, WEST]
 
     def __init__(self, position, cell_size, direction, size=.04,
-                 rotation: Union[int, float] = 0, grid_speed=.15, damage=50, hits=20):
+                 rotation: Union[int, float] = 0, grid_speed=.35, damage=50, hits=20):
         super().__init__(position, (size, 0), cell_size, grid_speed=grid_speed, rotation=rotation, damage=damage)
 
         self.direction = direction
@@ -531,7 +531,6 @@ class LaserTower(SimpleTower):
         # Rotate toward target
         angle = angle_between(self.position, target.position)
         partial_angle = rotate_toward(self.rotation, angle, self.rotation_threshold)
-        print(partial_angle)
 
         self.rotation = partial_angle
 
@@ -557,6 +556,7 @@ class Inferno(Pulse):
 
     colour = 'orange'
     name = 'Inferno'
+
 
     def step(self, units):
         """Performs a time step for this pulse
@@ -614,7 +614,7 @@ class InfernoTower(PulseTower):
     colour = 'orange'
     cool_down_steps = 3
 
-    range = PlusRange(0.5, 2.5)
+    range = PlusRange(0.5, 1.5)
 
 
     def step(self, units):
@@ -634,7 +634,7 @@ class InfernoTower(PulseTower):
         infernos = []
 
         for direction in Inferno.DIRECTIONS:
-            inferno = Inferno(self.position, self.cell_size, direction)
+            inferno = Inferno(self.position, int(self.cell_size), direction)
             inferno.move_by(Point2D(*direction) * (.4 * self.cell_size))
             infernos.append(inferno)
 

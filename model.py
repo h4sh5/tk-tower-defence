@@ -336,7 +336,6 @@ class TowerGame(EventEmitter):
                 self.obstacles.extend(obstacles)
 
     def _spawn_enemies(self):
-        print('spawn_enemies:',self._unspawned_enemies)
         """Spawn all the enemies to be spawned in the current time-step"""
         while len(self._unspawned_enemies):
             # gather next enemy to be spawned
