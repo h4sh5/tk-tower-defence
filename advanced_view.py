@@ -377,7 +377,7 @@ class ObstacleView(SimpleView):
         head = x + dx, y + dy
         tail = x - dx, y - dy
 
-        return canvas.create_line(head, tail, tag='obstacle', fill="#00ffff")
+        return canvas.create_line(head, tail, tag='obstacle', fill="red") #was #00ffff (aqua)
 
     @classmethod
     def _draw_pulse(cls, canvas: tk.Canvas, pulse: Pulse):

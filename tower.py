@@ -410,7 +410,8 @@ class Laser(AbstractObstacle):
 
 
     name = "Laser"
-    colour = "#00FFFF" #Aqua
+    #colour = "#00FFFF" #Aqua
+    colour = 'red'
     rotation_threshold = (1 / 3) * math.pi
 
 
@@ -462,7 +463,7 @@ class LaserTower(SimpleTower):
 
     cool_down_steps = 10
 
-    base_cost = 80
+    base_cost = 50
     level_cost = 60
 
     range = DonutRange(1.5, 4.5)

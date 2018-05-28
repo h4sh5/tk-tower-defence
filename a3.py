@@ -153,21 +153,31 @@ class ShopTowerView(tk.Frame):
 
     def __init__(self, master, tower, click_command, *args, **kwargs):#, *args, **kwargs):
         '''
-        Constructs an individual shop tower view
+        Constructs an individual shop tower view including the tower on display
+        and the command to execute upon clicked.
     
         tower (AbstractTower)
 
         '''
         super().__init__(master, **kwargs)
+        self.configure(pady=10)
 
         tower.position = (tower.cell_size//2, tower.cell_size//2)  # Position in centre
         tower.rotation = 3 * math.pi / 2  # Point up
 
-        self._canvas = tk.Canvas(master, width=tower.cell_size, height=tower.cell_size,
+        self._canvas = tk.Canvas(self, width=tower.cell_size, height=tower.cell_size,
             bg="#ff6600", bd=0, highlightthickness=0)
-        self._canvas.pack(expand=True)
+        self._canvas.pack(expand=True, side=tk.LEFT)
 
         TowerView.draw(self._canvas, tower, tower.cell_size)
+
+        self._label = tk.Label(self, bg="#ff6600")
+        self._label.configure(text="%s\nprice:%s" %(tower.name, tower.get_value()))
+        self._label.pack(expand=True, side=tk.RIGHT)
+
+        self.bind("<Button-1>", lambda event:click_command())
+        self._canvas.bind("<Button-1>", lambda event:click_command())
+        self._label.bind("<Button-1>", lambda event: click_command())
 
 
 
@@ -179,9 +189,9 @@ class ShopTowerView(tk.Frame):
             will be red
         '''
         if enabled:
-            self.configure(color='black')
+            self._label.configure(fg='black')
         else:
-            self.configure(color='red')
+            self._label.configure(fg='red')
 
 
 
@@ -237,7 +247,7 @@ class TowerGameApp(Stepper):
         shop.pack(side=tk.TOP, expand = True, anchor=tk.N, fill=tk.BOTH)
 
 
-        towers = [
+        self._towers = towers = [
             SimpleTower,
             MissileTower,
             LaserTower
@@ -248,13 +258,16 @@ class TowerGameApp(Stepper):
         for tower_class in towers:
             tower = tower_class(self._game.grid.cell_size // 2)
 
-            view = ShopTowerView(shop, tower,
-                click_command=lambda class_=tower_class: self.select_tower(class_),
+            #lambda class_=tower_class: self.select_tower(class_)
+
+            view = ShopTowerView(shop, tower, lambda class_=tower_class: self.select_tower(class_),
                 bg="#ff6600", highlightbackground="#4b3b4a",bd=0,highlightthickness=0)
 
             view.pack(fill=tk.X)
             # Used to check if tower is affordable when refreshing view
-            self._tower_views.append((tower, view))  
+            self._tower_views.append((tower, view)) 
+
+
 
         # Task 1.5 (Play Controls): instantiate widgets here
         self._control_frame = tk.Frame(self._right_frame)
@@ -353,7 +366,7 @@ class TowerGameApp(Stepper):
     def _setup_game(self):
         self._wave = 0
         self._score = 0
-        self._coins = 1000 #was 50
+        self._coins = 50 #was 50
         self._lives = 20
 
         self._won = False
@@ -368,6 +381,13 @@ class TowerGameApp(Stepper):
         if self._wave_button.cget('state') != 'normal' or self._play_button.cget('state') != 'normal':
             self._wave_button.config(state=tk.NORMAL)
             self._play_button.config(state=tk.NORMAL)
+
+        # set initial availability for tower views
+        for tower, view in self._tower_views:
+            if self._coins < tower.get_value():
+                view.set_available(False)
+            else: 
+                view.set_available(True)
 
         self._game.reset()
 
@@ -486,12 +506,17 @@ class TowerGameApp(Stepper):
         position = event.x, event.y
         cell_position = self._game.grid.pixel_to_cell(position)
 
-        if self._game.place(cell_position, tower_type=self._current_tower.__class__):
-            # Task 1.2 (Tower placement): Attempt to place the tower being previewed
-            legal, grid_path = self._game.attempt_placement(position)
-            if legal:
-                self._game.place(cell_position, self._current_tower)
-                #refresh view upon placing a tower
+        # Task 1.2 (Tower placement): Attempt to place the tower being previewed
+        legal, grid_path = self._game.attempt_placement(position)
+
+        if legal and (self._current_tower.get_value() <= self._coins):
+            print('test')
+            self._coins = self._coins - self._current_tower.get_value()            
+            self._status_bar.set_coins(self._coins)
+
+            #refresh view upon placing a tower
+
+            if self._game.place(cell_position, tower_type=self._current_tower.__class__):
                 self._step()
 
     def _right_click(self, event):
@@ -508,12 +533,17 @@ class TowerGameApp(Stepper):
         cell_position = self._game.grid.pixel_to_cell(position)
 
         removed_tower = self._game.remove(cell_position)
-        self._coins += removed_tower.get_value()
+        self._coins += removed_tower.get_value() * 0.8
 
         #updates coins string var to display coins
         self._status_bar.set_coins(self._coins)
 
-            
+        # update availability for tower views
+        for tower, view in self._tower_views:
+            if self._coins < tower.get_value():
+                view.set_available(False)
+            else: 
+                view.set_available(True)
 
     def next_wave(self):
         """Sends the next wave of enemies against the player"""
@@ -543,7 +573,7 @@ class TowerGameApp(Stepper):
         Parameters:
             tower (AbstractTower): The new tower type
         """
-        print(tower)
+        print('selected:', tower)
         self._current_tower = tower(self._game.grid.cell_size)
 
     def _handle_death(self, enemies):
@@ -561,6 +591,13 @@ class TowerGameApp(Stepper):
         # Task 1.3 (Status Bar): Update coins & score displays here
         self._status_bar.set_coins(self._coins)
         self._status_bar.set_score(self._score)
+
+        for tower, view in self._tower_views:
+            if self._coins < tower.get_value():
+                view.set_available(False)
+            else: 
+                view.set_available(True)
+
 
     def _handle_escape(self, enemies):
         """
