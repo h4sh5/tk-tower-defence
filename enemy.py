@@ -77,7 +77,6 @@ class SimpleEnemy(AbstractEnemy):
             type_ (str): The type of damage to do i.e. projectile, explosive
         """
         #debug
-        #print(type_, ":", damage)
 
         self.health -= damage
         if self.health < 0:
@@ -205,4 +204,66 @@ class HardenedEnemy(AbstractEnemy):
         return intersects or grid.pixel_to_cell(self.position) in path.deltas
 
 
+class SuperRichardEnemy(AbstractEnemy):
+    """A super boss enemy."""
+    name = "Super Richard"
+    colour = "red"
+
+    points = 200
+
+    def __init__(self, grid_size=(.6, .6), grid_speed=1/60, health=500):
+        super().__init__(grid_size, grid_speed, health)
+
+    def damage(self, damage, type_):
+        """Inflict damage on the enemy
+
+        Parameters:
+            damage (int): The amount of damage to inflict
+            type_ (str): The type of damage to do i.e. projectile, explosive
+        """
+
+        self.health -= damage
+        if self.health < 0:
+            self.health = 0
+
+    def step(self, data):
+        """Move the enemy forward a single time-step
+
+        Parameters:
+            grid (GridCoordinateTranslator): Grid the enemy is currently on
+            path (Path): The path the enemy is following
+
+        Returns:
+            bool: True iff the new location of the enemy is within the grid
+        """
+        grid = data.grid
+        path = data.path
+
+        # Repeatedly move toward next cell centre as much as possible
+        movement = self.grid_speed
+        while movement > 0:
+            cell_offset = grid.pixel_to_cell_offset(self.position)
+
+            # Assuming cell_offset is along an axis!
+            offset_length = abs(cell_offset[0] + cell_offset[1])
+
+            if offset_length == 0:
+                partial_movement = movement
+            else:
+                partial_movement = min(offset_length, movement)
+
+            cell_position = grid.pixel_to_cell(self.position)
+            delta = path.get_best_delta(cell_position)
+
+            # Ensures enemy will move to the centre before moving toward delta
+            dx, dy = get_delta_through_centre(cell_offset, delta)
+
+            speed = partial_movement * self.cell_size
+            self.move_by((speed * dx, speed * dy))
+            self.position = tuple(int(i) for i in self.position)
+
+            movement -= partial_movement
+
+        intersects = rectangles_intersect(*self.get_bounding_box(), (0, 0), grid.pixels)
+        return intersects or grid.pixel_to_cell(self.position) in path.deltas
 

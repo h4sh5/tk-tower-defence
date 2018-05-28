@@ -53,7 +53,7 @@ import random
 from range_ import AbstractRange, DonutRange, PlusRange, CircularRange
 from tower import AbstractTower, MissileTower, PulseTower, SimpleTower, \
     AbstractObstacle, Missile, Pulse, LaserTower, Laser
-from enemy import AbstractEnemy
+from enemy import AbstractEnemy, SuperRichardEnemy
 from utilities import rotate_point
 
 __author__ = "Benjamin Martin"
@@ -290,6 +290,7 @@ class EnemyView(SimpleView):
     # Sorting ensures child classes are given higher precedence than their parent classes
     draw_methods = sort_draw_methods([
         (AbstractEnemy, '_draw_simple'),
+        (SuperRichardEnemy, '_draw_richard'),
     ])
 
     @classmethod
@@ -322,6 +323,57 @@ class EnemyView(SimpleView):
                                  outline='')
 
         return [outline, fill]
+
+    @classmethod
+    def _draw_richard(cls, canvas: tk.Canvas, enemy: AbstractEnemy):
+        """Draws an enemy"""
+
+        top_left, bottom_right = enemy.get_bounding_box()
+
+        # create
+        # outline = canvas.create_oval(top_left, bottom_right, tags='enemy',
+        #                              fill='red') #fill was 'white smoke'
+
+        picture = tk.PhotoImage(file="images/richard.gif")
+        picture.zoom(2,2) #half the image
+        #outline = canvas.create_oval(top_left, bottom_right, tags='enemy', fill='white smoke')
+
+        richard = canvas.create_image((top_left[0], top_left[1]+30), tags='enemy', image=picture)
+        canvas.richard = picture # to preserve it from garbage collection
+
+
+        y = 30
+
+
+        health_percent = enemy.percentage_health()
+
+        health_bar_width = (bottom_right[0] - top_left[0]) * health_percent
+
+
+        #change width and colour of the health bar according to health percentage
+
+        if health_percent >= 0.8:
+            health_bar = canvas.create_rectangle((top_left[0], top_left[1] - y), ((top_left[0]+health_bar_width), top_left[1] - y), 
+                fill='green', outline='green', tag='enemy')
+
+        elif 0.4 <= health_percent < 0.8:
+            health_bar = canvas.create_rectangle((top_left[0], top_left[1] - y), ((top_left[0]+health_bar_width), top_left[1] - y), 
+                fill='yellow', outline='yellow', tag='enemy')
+
+        elif 0.1 <= health_percent < 0.4:
+            health_bar = canvas.create_rectangle((top_left[0], top_left[1] - y), ((top_left[0]+health_bar_width), top_left[1] - y), 
+                fill='red', outline='red', tag='enemy')
+
+        elif health_percent <= 0.1 :
+
+            explosion_picture = tk.PhotoImage(file="images/explosion.gif")
+            explosion = canvas.create_image((top_left[0], top_left[1]+30), image=explosion_picture, tag='enemy')
+            canvas.explosion = explosion_picture
+            return [explosion]
+
+        return [richard, health_bar]
+
+
 
 
 class ObstacleView(SimpleView):

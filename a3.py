@@ -2,12 +2,13 @@ import tkinter as tk
 
 from model import TowerGame
 from tower import SimpleTower, MissileTower, LaserTower
-from enemy import SimpleEnemy, HardenedEnemy
+from enemy import SimpleEnemy, HardenedEnemy, SuperRichardEnemy
 from utilities import Stepper
 from view import GameView
 from level import AbstractLevel
 from tower_view import TowerView
 import math
+import time
 
 BACKGROUND_COLOUR = "#4a2f48"
 
@@ -35,7 +36,7 @@ class MyLevel(AbstractLevel):
         if wave == 1:
             # A hardcoded singleton list of (step, enemy) pairs
 
-            enemies = [(10, SimpleEnemy())]
+            enemies = [(1, SuperRichardEnemy()), (10, SimpleEnemy())]
 
         elif wave == 2:
             # A hardcoded list of multiple (step, enemy) pairs
@@ -360,7 +361,7 @@ class TowerGameApp(Stepper):
     def _setup_game(self):
         self._wave = 0
         self._score = 0
-        self._coins = 50 #was 50
+        self._coins = 1000
         self._lives = 20
 
         self._won = False
@@ -584,7 +585,6 @@ class TowerGameApp(Stepper):
         Parameters:
             tower (AbstractTower): The new tower type
         """
-        print('selected:', tower)
         self._current_tower = tower(self._game.grid.cell_size)
 
     def _handle_death(self, enemies):
@@ -594,6 +594,9 @@ class TowerGameApp(Stepper):
         Parameters:
             enemies (list<AbstractEnemy>): The enemies which died in a step
         """
+        for enemy in enemies:
+            if type(enemy) == SuperRichardEnemy:
+                time.sleep(0.3)
         bonus = len(enemies) ** .5
         for enemy in enemies:
             self._coins += enemy.points
