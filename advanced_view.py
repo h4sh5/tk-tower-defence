@@ -384,12 +384,12 @@ class EnemyView(SimpleView):
                 ((top_left[0]-30+health_bar_width), top_left[1] - health_bar_offset_y), 
                 fill='yellow', outline='yellow', tag='enemy')
 
-        elif 0.1 <= health_percent < 0.4:
+        elif 0.2 <= health_percent < 0.4:
             health_bar = canvas.create_rectangle((top_left[0]-health_bar_offset_x, top_left[1] - health_bar_offset_y), 
                 ((top_left[0]-health_bar_offset_x+health_bar_width), top_left[1] - health_bar_offset_y), 
                 fill='red', outline='red', tag='enemy')
 
-        elif health_percent <= 0.1 :
+        elif health_percent <= 0.2 :
 
             explosion_picture = tk.PhotoImage(file="images/explosion.gif")
             explosion = canvas.create_image((top_left[0], top_left[1]+30), image=explosion_picture, tag='enemy')
@@ -443,23 +443,6 @@ class ObstacleView(SimpleView):
 
         return canvas.create_line(head, tail, tag='obstacle', fill='orange') # had no fill before (black)
 
-    '''
-    #old laser that works like a bullet
-    @classmethod
-    def _draw_laser(cls, canvas: tk.Canvas, laser: Laser):
-        """Draws a laser"""
-
-        x, y = laser.position
-
-        length, width = laser.size
-
-        dx, dy = rotate_point((length / 2, width / 2), laser.rotation)
-
-        head = x + dx, y + dy
-        tail = x - dx, y - dy
-
-        return canvas.create_line(head, tail, tag='obstacle', fill="red") #was #00ffff (aqua)
-    '''
     #new laser that is actually a laser
     @classmethod
     def _draw_laser(cls, canvas: tk.Canvas, laser: Laser):

@@ -307,8 +307,10 @@ class Pulse(AbstractObstacle):
 
     DIRECTIONS = [NORTH, EAST, SOUTH, WEST]
 
+    base_damage = 30
+
     def __init__(self, position, cell_size, direction, size=.04,
-                 rotation: Union[int, float] = 0, grid_speed=.35, damage=50, hits=20):
+                 rotation: Union[int, float] = 0, grid_speed=.35, damage=30, hits=20):
         super().__init__(position, (size, 0), cell_size, grid_speed=grid_speed, rotation=rotation, damage=damage)
 
         self.direction = direction
@@ -418,7 +420,7 @@ class Laser(AbstractObstacle):
 
 
     def __init__(self, position, cell_size, target: AbstractEnemy, size=30,
-                 rotation: Union[int, float] = 0, grid_speed=.5, damage=30):
+                 rotation: Union[int, float] = 0, grid_speed=.5, damage=10):
         
         super().__init__(position, (size, 0), cell_size, grid_speed=grid_speed, rotation=rotation, damage=damage)
         self.target = target
@@ -556,6 +558,7 @@ class Inferno(Pulse):
 
     colour = 'orange'
     name = 'Inferno'
+    base_damage = 30
 
 
     def step(self, units):

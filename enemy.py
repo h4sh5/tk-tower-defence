@@ -237,14 +237,13 @@ class SuperRichardEnemy(AbstractEnemy):
     points = 200
     health = 1000
 
-    def __init__(self, spawned_step, game, grid_size=(.6, .6), grid_speed=2.5/60, health=health):
+    def __init__(self, game, grid_size=(.6, .6), grid_speed=2.5/60, health=health):
         '''
         parameters:
             spawned_step (int): the number of steps when it is spawned
             game (TowerGame): instance of the game
         '''
         super().__init__(grid_size, grid_speed, health)
-        self.spawned_step = spawned_step
         self.spawn_swarm = game.queue_wave
         self.game = game
 

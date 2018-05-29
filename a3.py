@@ -37,13 +37,14 @@ class MyLevel(AbstractLevel):
         if wave == 1:
             # A hardcoded singleton list of (step, enemy) pairs
 
-            enemies = [ (10, SimpleEnemy()), (20, SuperRichardEnemy(20, game)) ]
+            enemies = [ (10, SimpleEnemy()) ]
 
 
         elif wave == 2:
             # A hardcoded list of multiple (step, enemy) pairs
 
-            enemies = [(5, HardenedEnemy()), (15, SimpleEnemy()), (30, SimpleEnemy())]
+            enemies = [(5, HardenedEnemy()), (15, SimpleEnemy()), (30, SimpleEnemy()), 
+                (40, SuperRichardEnemy(game)),]
 
 
         elif 3 <= wave < 10:
@@ -54,6 +55,8 @@ class MyLevel(AbstractLevel):
 
             for step in self.generate_intervals(steps, count):
                 enemies.append((step, SimpleEnemy()))
+                enemies.append((step+10, HardenedEnemy()))
+                enemies.append((step+20, SwarmEnemy()))
 
         elif wave == 10:
             # Generate sub waves
@@ -61,7 +64,8 @@ class MyLevel(AbstractLevel):
                 # (steps, number of enemies, enemy constructor, args, kwargs)
                 (50, 10, SimpleEnemy, (), {}),  # 10 enemies over 50 steps
                 (100, None, None, None, None),  # then nothing for 100 steps
-                (50, 10, SimpleEnemy, (), {})  # then another 10 enemies over 50 steps
+                (50, 10, SimpleEnemy, (), {}),  # then another 10 enemies over 50 steps
+                (30, 1, lambda game=game: SuperRichardEnemy(game), (), {}),
             ]
 
             enemies = self.generate_sub_waves(sub_waves)
@@ -77,7 +81,21 @@ class MyLevel(AbstractLevel):
                     (),  # positional arguments to provide to enemy constructor
                     {},  # keyword arguments to provide to enemy constructor
                 ),
-                # ...
+                (
+                    int(13 * wave),  # total steps
+                    int(25 * wave ** (wave / 50)),  # number of enemies
+                    HardenedEnemy,  # enemy constructor
+                    (),  # positional arguments to provide to enemy constructor
+                    {},  # keyword arguments to provide to enemy constructor
+                ),
+                (
+                    int(2 * wave),  # total steps
+                    int(5 * wave ** (wave / 50)),  # number of enemies
+                    lambda game=game: SuperRichardEnemy(game),  # enemy constructor
+                    (),  # positional arguments to provide to enemy constructor
+                    {},  # keyword arguments to provide to enemy constructor
+                ),
+
             ]
             enemies = self.generate_sub_waves(sub_waves)
 
@@ -201,7 +219,11 @@ class ShopTowerView(tk.Frame):
         else:
             self._label.configure(fg='red')
 
+class UpgradeControl(tk.Frame):
+    '''controls the upgrade of the towers'''
 
+    def __init__(self, master, tower):
+        pass
 
 class TowerGameApp(Stepper):
     """Top-level GUI application for a simple tower defence game"""
@@ -234,6 +256,8 @@ class TowerGameApp(Stepper):
 
         self._game = game = TowerGame()
 
+        self._highscores = {}
+
         self.setup_menu()
         self._master.configure(menu=self._menu)
 
@@ -257,10 +281,9 @@ class TowerGameApp(Stepper):
 
         self._towers = towers = [
             SimpleTower,
-            MissileTower,
             InfernoTower,
             LaserTower,
-            
+            MissileTower,
         ]
 
         # Create views for each tower & store to update if availability changes
@@ -365,12 +388,10 @@ class TowerGameApp(Stepper):
     def _setup_game(self):
         self._wave = 0
         self._score = 0
-        self._coins = 1000
+        self._coins = 50
         self._lives = 20
 
         self._won = False
-
-        self._highscores = {}
 
         # Task 1.3 (Status Bar): Update status here
         self._status_bar.set_wave(self._wave)
@@ -706,4 +727,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = TowerGameApp(root)
     root.mainloop()
+    root.withdraw()
 
