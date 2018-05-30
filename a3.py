@@ -103,7 +103,7 @@ class MyLevel(AbstractLevel):
                 ),
                 (
                     int(2 * wave),  #total steps
-                    int(1),  #number of enemies
+                    int(25 * wave ** (wave / 500)),  #number of enemies
                     lambda game=game: SuperRichardEnemy(game),  #enemy constructor
                     (),  #positional arguments to provide to enemy constructor
                     {},  #keyword arguments to provide to enemy constructor
@@ -292,6 +292,7 @@ class UpgradeControl(tk.Frame):
 
         self._level2_checkbox = tk.Checkbutton(self, 
             command=lambda:self.level_up(2))
+        self._level2_checkbox.deselect()
         self._level2_checkbox.pack(side=tk.LEFT, expand=True)
 
         self._level3_label = tk.Label(self, text="level 3: %d"%self._price)
@@ -299,40 +300,51 @@ class UpgradeControl(tk.Frame):
        
         self._level3_checkbox = tk.Checkbutton(self, 
             command=lambda:self.level_up(3))
+        self._level3_checkbox.deselect()
         self._level3_checkbox.pack(side=tk.LEFT, expand=True)
 
-        self.check_available()
+        #self.check_available()
 
 
 
     def level_up(self, level):
-        '''level up the tower to a level
+        '''level up the tower to a level,
+        can only do one level at a time.
         parameters:
             level (int): level to level up to
         '''
-        self._app._coins -= self._price
-        self._tower.level = level 
 
-        print('%s level %d!'%(self._tower.name,self._tower.level))
+        if not self._app._coins < self._price and (level == self._tower.level + 1) :
+            self._app._coins -= self._price
+            self._app._status_bar.set_coins(self._app._coins)
+            self._tower.level = level 
+
+            print('%s level %d!'%(self._tower.name,self._tower.level))
+
+        else:
+            if level == 2:
+                self._level2_checkbox.deselect()
+            elif level == 3:
+                self._level3_checkbox.deselect()
 
 
-    def check_available(self):
-        '''checks and enables upgrade checkboxes according to coins'''
-
-        #player cannot repeat upgrades
+    def check_status(self):
+        '''
+        checks the level of the current tower and selects/deselects the 
+        checkbox accordingly.
+        '''
         if self._tower.level == 2:
-            self._level2_checkbox.configure(state=tk.DISABLED)
+            self._level2_checkbox.select()
+            self._level3_checkbox.deselect()
+
         elif self._tower.level == 3:
-            self._level3_checkbox.configure(state=tk.DISABLED)
+            self._level2_checkbox.select()
+            self._level3_checkbox.select()
 
-        #player can't buy upgrades without enough coins
-        if self._app._coins < self._price:
-            self._level2_checkbox.configure(state=tk.DISABLED)
-            self._level3_checkbox.configure(state=tk.DISABLED)
-
-
+        else:
+            self._level2_checkbox.deselect()
+            self._level3_checkbox.deselect()
             
-
 
 
 class TowerGameApp(Stepper):
@@ -539,7 +551,7 @@ class TowerGameApp(Stepper):
 
         self._game.reset()
 
-        self._paused = True
+        self._toggle_paused()
 
         #to store and retrive boss images
         self._view._boss_images = {}
@@ -552,7 +564,7 @@ class TowerGameApp(Stepper):
         '''
         
         #clears the enemies
-        self._view.delete("enemy","tower","obstacles","laser")
+        self._view.delete("enemy","tower","obstacle","laser")
         self._game.queue_wave([], True) #clear all enemies
         self._setup_game()
 
@@ -685,22 +697,22 @@ class TowerGameApp(Stepper):
             print('\n')
 
             #hide all upgrade_controls
-            for tower in self._upgrade_controls:
-                self._upgrade_controls[tower].pack_forget()
+            for t in self._upgrade_controls:
+                self._upgrade_controls[t].pack_forget()
 
             
             #initiate the upgrade control if it doesn't already exist
             if tower not in self._upgrade_controls:
                 upgrade_control = UpgradeControl(self._right_frame, tower, self)
                 self._upgrade_controls[tower] = upgrade_control
-                upgrade_control.check_available()
                 upgrade_control.pack(expand=True)
 
             else:
-                #then pack the one selected
+                #pack the one with the tower
+                tower = self._game.towers[cell_position]
                 upgrade_control = self._upgrade_controls[tower]
-                upgrade_control.check_available()
                 upgrade_control.pack(expand=True)
+                upgrade_control.check_status()
 
 
         #Task 1.2 (Tower placement): Attempt to place the tower being previewed

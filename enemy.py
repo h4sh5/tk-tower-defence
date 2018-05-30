@@ -164,7 +164,7 @@ class HardenedEnemy(AbstractEnemy):
     name = "Hardened Enemy"
     colour = "grey"
 
-    points = 10
+    points = 8
     live_damage = 2
 
     def __init__(self, grid_size=(.3, .3), grid_speed=3/60, health=100):
@@ -237,7 +237,7 @@ class SuperRichardEnemy(AbstractEnemy):
     name = "Super Richard"
     colour = "red"
 
-    points = 200
+    points = 50
     health = 1000
     live_damage = 5
     id = 0

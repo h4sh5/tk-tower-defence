@@ -637,7 +637,7 @@ class InfernoTower(PulseTower):
     '''a pulse tower that shoots infernos'''
     name = "Inferno Tower"
     colour = 'orange'
-    cool_down_steps = 3
+    cool_down_steps = 5
     base_cost = 50
 
     range = PlusRange(0.5, 1.5)
