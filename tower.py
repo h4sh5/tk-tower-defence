@@ -369,6 +369,27 @@ class Pulse(AbstractObstacle):
         return True, None
 
 
+class SlowTower(SimpleTower):
+    '''a tower that slows down enemies'''
+    name = 'Slow Tower'
+    colour = '#6183B4'
+    base_cost = 70
+
+    def step(self, data):
+        """Rotates toward 'target' and attacks if possible"""
+        self.cool_down.step()
+
+        target = self.get_unit_in_range(data.enemies)
+
+        if target is None:
+            return
+
+        angle = angle_between(self.position, target.position)
+        partial_angle = rotate_toward(self.rotation, angle, self.rotation_threshold)
+        self.rotation = partial_angle
+
+        if partial_angle == angle:
+            target.grid_speed = 1/24
 
 
 class PulseTower(AbstractTower):

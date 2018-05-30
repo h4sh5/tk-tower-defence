@@ -49,6 +49,7 @@ and set the corresponding keyword argument in view.GameView
 import math
 import tkinter as tk
 import random
+import os.path
 
 from range_ import AbstractRange, DonutRange, PlusRange, CircularRange
 from tower import AbstractTower, MissileTower, PulseTower, SimpleTower, \
@@ -359,16 +360,25 @@ class EnemyView(SimpleView):
         health_bar_width = (bottom_right[0] - top_left[0]) * health_percent
 
         if health_percent <= 0.5:
-            #enranged mode if health is under half
-            picture = tk.PhotoImage(file="images/richard_angry.gif")
-            picture.zoom(2,2) #half the scale of the image
+
+
+            angry_file = os.path.join("images", "richard_angry.gif")
+            picture = tk.PhotoImage(file=angry_file)
+            canvas._boss_images[enemy.id] = picture
+            
 
         else:
-            picture = tk.PhotoImage(file="images/richard.gif")
-            picture.zoom(2,2)
+
+            try:
+                picture = canvas._boss_images[enemy.id]
+            except KeyError:
+                richard_file = os.path.join("images", "richard.gif")
+                picture = tk.PhotoImage(file=richard_file)
+                canvas._boss_images[enemy.id] = picture
+            
 
         richard = canvas.create_image((top_left[0], top_left[1]+30), tags='enemy', image=picture)
-        canvas.richard = picture # to preserve it from garbage collection
+        
 
 
         #change width and colour of the health bar according to health percentage
@@ -390,11 +400,10 @@ class EnemyView(SimpleView):
                 fill='red', outline='red', tag='enemy')
 
         elif health_percent <= 0.1 :
-
-            explosion_picture = tk.PhotoImage(file="images/explosion.gif")
-            explosion_picture.zoom(5, 5)
+            explosion_file = os.path.join("images", "explosion.gif")
+            explosion_picture = tk.PhotoImage(file=explosion_file)
             explosion = canvas.create_image((top_left[0], top_left[1]+30), image=explosion_picture, tag='enemy')
-            canvas.explosion = explosion_picture
+            canvas._boss_images[enemy.id] = explosion_picture
             return [explosion]
 
         return [richard, health_bar]

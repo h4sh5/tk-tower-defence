@@ -1,14 +1,18 @@
 import tkinter as tk
 
 from model import TowerGame
-from tower import SimpleTower, MissileTower, LaserTower, InfernoTower
+from tower import SimpleTower, MissileTower, LaserTower, InfernoTower, SlowTower
 from enemy import SimpleEnemy, HardenedEnemy, SuperRichardEnemy, SwarmEnemy
 from utilities import Stepper
 from view import GameView
 from level import AbstractLevel
 from advanced_view import TowerView
+from high_score_manager import HighScoreManager 
+import os.path
+
 import math
 import time
+
 
 BACKGROUND_COLOUR = "#4a2f48"
 
@@ -43,7 +47,7 @@ class MyLevel(AbstractLevel):
         elif wave == 2:
             #A hardcoded list of multiple (step, enemy) pairs
 
-            enemies = [ (15, SimpleEnemy()), (30, SimpleEnemy()), (40, SwarmEnemy())]
+            enemies = [ (15, SimpleEnemy()), (30, SimpleEnemy())]
 
 
         elif 3 <= wave < 5:
@@ -99,7 +103,7 @@ class MyLevel(AbstractLevel):
                 ),
                 (
                     int(2 * wave),  #total steps
-                    int(5 * wave ** (wave / 100)),  #number of enemies
+                    int(1),  #number of enemies
                     lambda game=game: SuperRichardEnemy(game),  #enemy constructor
                     (),  #positional arguments to provide to enemy constructor
                     {},  #keyword arguments to provide to enemy constructor
@@ -136,18 +140,27 @@ class StatusBar(tk.Frame):
         self._score_label.pack(expand=True, side=tk.TOP)
 
         self._coins_strvar = tk.StringVar()
-        self._coins_image = tk.PhotoImage(file="images/coins.gif")
+        coins_file = os.path.join("images", "coins.gif")
+        self._coins_image = tk.PhotoImage(file=coins_file)
+
+
+
+
         self._coins_image_label = tk.Label(self._status_bar, image=self._coins_image)
         self._coins_label = tk.Label(self._status_bar, textvariable=self._coins_strvar)
         self._coins_image_label.pack(side=tk.LEFT,expand=True)
         self._coins_label.pack(side=tk.LEFT,expand=True)
 
+
+
         self._lives_strvar = tk.StringVar()
-        self._lives_image = tk.PhotoImage(file="images/heart.gif")
+        heart_file = os.path.join("images", "heart.gif")
+        self._lives_image = tk.PhotoImage(file=heart_file)
         self._lives_image_label = tk.Label(self._status_bar, image=self._lives_image)
         self._lives_label = tk.Label(self._status_bar, textvariable=self._lives_strvar)
         self._lives_image_label.pack(side=tk.LEFT,expand=True)
         self._lives_label.pack(side=tk.LEFT,expand=True)
+
 
     def set_score(self, score):
         '''updates the score on the display
@@ -378,6 +391,7 @@ class TowerGameApp(Stepper):
 
         self._towers = towers = [
             SimpleTower,
+            SlowTower,
             InfernoTower,
             LaserTower,
             MissileTower,
@@ -432,6 +446,11 @@ class TowerGameApp(Stepper):
         self._view.bind("<Leave>",self._mouse_leave)
         self._view.bind("<Button-2>", self._right_click)
 
+        #high scores
+        self._high_score_manager = HighScoreManager()
+
+
+
         #handling close window
         import sys
         if len(sys.argv) == 1:
@@ -474,6 +493,10 @@ class TowerGameApp(Stepper):
         Parameters:
             paused (bool): Toggles/pauses/unpauses if None/True/False, respectively
         """
+        #automatically start the first wave
+        if self._wave == 0:
+            self.next_wave()
+
         if paused is None:
             paused = not self._paused
 
@@ -516,9 +539,10 @@ class TowerGameApp(Stepper):
 
         self._game.reset()
 
-        #Auto-start the first wave
-        self.next_wave()
-        self._toggle_paused(paused=True)
+        self._paused = True
+
+        #to store and retrive boss images
+        self._view._boss_images = {}
 
     #Task 1.4 (File Menu): Complete menu item handlers here (including docstrings!)
     
@@ -555,12 +579,10 @@ class TowerGameApp(Stepper):
     def _handle_highscores(self):
         '''displays highscores'''
         label_txt = "High scores:\n"
-        #sort the highscores so that they are displayed top down
-        highscores_sorted = sorted(self._highscores, key=self._highscores.__getitem__,
-            reverse=True)
-
-        for player in highscores_sorted:
-            label_txt += "%s: %s\n" %(player, self._highscores[player])
+        high_score_entries = self._high_score_manager.get_entries()
+        print(high_score_entries)
+        for entry in high_score_entries:
+            label_txt += "%s: %s\n" %(entry['name'], entry['score'])
 
         highscore_window = tk.Toplevel(self._master)
         label = tk.Label(highscore_window, text=label_txt)
@@ -646,7 +668,7 @@ class TowerGameApp(Stepper):
             event (tk.Event): Tkinter mouse event
         """
         #retrieve position to place tower
-        if self._current_tower is None or self._paused != False:
+        if self._current_tower is None:
             return
 
         position = event.x, event.y
@@ -693,6 +715,7 @@ class TowerGameApp(Stepper):
             if self._game.place(cell_position, tower_type=self._current_tower.__class__):
                 #delete preview after placing
                 self._view.delete("shadow", "range", "path")
+                self.refresh_view()
                 self._step()
 
     def _right_click(self, event):
@@ -798,7 +821,7 @@ class TowerGameApp(Stepper):
         self._status_bar.set_lives(self._lives)
 
         #Handle game over
-        if self._lives == 0:
+        if self._lives <= 0:
             self._handle_game_over(won=False)
 
     def _handle_wave_clear(self):
@@ -819,7 +842,8 @@ class TowerGameApp(Stepper):
             destroy its parent from.
         '''
         player = entry_box.get()
-        self._highscores[player] = self._score
+        self._high_score_manager.add_entry(player, self._score, '')
+        self._high_score_manager.save()
         entry_box.master.destroy()
 
         #show the high scores

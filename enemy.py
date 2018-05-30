@@ -7,7 +7,6 @@ from core import Unit
 from utilities import rectangles_intersect, get_delta_through_centre
 import random
 
-
 __author__ = "Benjamin Martin and Brae Webb"
 __copyright__ = "Copyright 2018, The University of Queensland"
 __license__ = "MIT"
@@ -241,6 +240,8 @@ class SuperRichardEnemy(AbstractEnemy):
     points = 200
     health = 1000
     live_damage = 5
+    id = 0
+
 
     def __init__(self, game, grid_size=(.6, .6), grid_speed=2.5/60, health=health):
         '''
@@ -253,6 +254,12 @@ class SuperRichardEnemy(AbstractEnemy):
         self.game = game
 
         self.swarm_count = 0
+
+        SuperRichardEnemy.id += 1
+        self.id = SuperRichardEnemy.id
+
+
+
 
     def damage(self, damage, type_):
         """Inflict damage on the enemy
@@ -286,7 +293,7 @@ class SuperRichardEnemy(AbstractEnemy):
             swarm = [(5,  SwarmEnemy())]
             
             if self.swarm_count < 10:
-                for i in range(random.randint(2,5)):
+                for i in range(5):
                     
                     for step, enemy in swarm:
                         enemy.set_cell_size(self.game.grid.cell_size)
