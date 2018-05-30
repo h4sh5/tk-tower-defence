@@ -216,7 +216,7 @@ class TowerView(SimpleView):
         body = canvas.create_oval(top_left, bottom_right, tag='tower', fill=colour)
         tags = [body]
 
-        '''
+        
         angle_step = math.pi/2
         for i in range(4):
             angle = i * angle_step
@@ -226,7 +226,7 @@ class TowerView(SimpleView):
 
             tag = canvas.create_line(x + dx/2, y + dy/2, x + dx, y + dy, tag='tower')
 
-            tags.append(tag)'''
+            tags.append(tag)
 
 
 

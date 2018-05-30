@@ -195,6 +195,8 @@ class ShopTowerView(tk.Frame):
         super().__init__(master, **kwargs)
         self.configure(pady=10)
 
+        self._tower = tower
+
         tower.position = (tower.cell_size//2, tower.cell_size//2)  #Position in centre
         tower.rotation = 3 * math.pi / 2  #Point up
 
@@ -213,6 +215,10 @@ class ShopTowerView(tk.Frame):
         self._label.bind("<Button-1>", lambda event: click_command())
 
 
+    def get_tower(self):
+        '''return tower'''
+        return self._tower.__class__
+
 
     def set_available(self, enabled=True):
         '''set the status of the shop view
@@ -227,14 +233,22 @@ class ShopTowerView(tk.Frame):
         else:
             self._label.configure(fg='red')
 
-    def choose_tower(self):
-        '''change the background colour and then run select_command
-
+    def set_selected(self, selected):
+        '''set a different colour once its selected 
+        
+        parameters:
+            selected (bool): if it's selected or not.
         '''
-        if enabled:
-            self._label.configure(fg='black')
+        if selected:
+            self.configure(bg='yellow')
+            self._label.configure(bg='yellow')
+            self._canvas.configure(bg='yellow')
+
         else:
-            self._label.configure(fg='red')
+            self.configure(bg='#ff6600')
+            self._label.configure(bg='#ff6600')
+            self._canvas.configure(bg='#ff6600')
+
 
 
 
@@ -735,6 +749,11 @@ class TowerGameApp(Stepper):
         Parameters:
             tower (AbstractTower): The new tower type
         """
+        for tower_type, shop_tower_view in self._tower_views:
+            shop_tower_view.set_selected(False)
+            if tower_type.__class__ == tower:
+                shop_tower_view.set_selected(True)
+
         self._current_tower = tower(self._game.grid.cell_size)
 
     def _handle_death(self, enemies):
