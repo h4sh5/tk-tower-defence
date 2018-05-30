@@ -6,7 +6,7 @@ from enemy import SimpleEnemy, HardenedEnemy, SuperRichardEnemy, SwarmEnemy
 from utilities import Stepper
 from view import GameView
 from level import AbstractLevel
-from tower_view import TowerView
+from advanced_view import TowerView
 import math
 import time
 
@@ -16,7 +16,7 @@ __author__ = "Haoxi Tan"
 
 
 
-# Could be moved to a separate file, perhaps levels/simple.py, and imported
+#Could be moved to a separate file, perhaps levels/simple.py, and imported
 class MyLevel(AbstractLevel):
     """A simple game level containing examples of how to generate a wave"""
     waves = 20
@@ -35,65 +35,74 @@ class MyLevel(AbstractLevel):
         enemies = []
 
         if wave == 1:
-            # A hardcoded singleton list of (step, enemy) pairs
+            #A hardcoded singleton list of (step, enemy) pairs
 
-            enemies = [ (10, SimpleEnemy()) ]
+            enemies = [ (10, SimpleEnemy()),(12, SimpleEnemy()),(14, SimpleEnemy())]
 
 
         elif wave == 2:
-            # A hardcoded list of multiple (step, enemy) pairs
+            #A hardcoded list of multiple (step, enemy) pairs
 
-            enemies = [(5, HardenedEnemy()), (15, SimpleEnemy()), (30, SimpleEnemy()), 
-                (40, SuperRichardEnemy(game)),]
+            enemies = [ (15, SimpleEnemy()), (30, SimpleEnemy()), (40, SwarmEnemy())]
 
 
-        elif 3 <= wave < 10:
-            # List of (step, enemy) pairs spread across an interval of time (steps)
+        elif 3 <= wave < 5:
+            #List of (step, enemy) pairs spread across an interval of time (steps)
 
-            steps = int(40 * (wave ** .5))  # The number of steps to spread the enemies across
-            count = wave * 2  # The number of enemies to spread across the (time) steps
+            steps = int(40 * (wave ** .5))  #The number of steps to spread the enemies across
+            count = wave * 2  #The number of enemies to spread across the (time) steps
 
             for step in self.generate_intervals(steps, count):
                 enemies.append((step, SimpleEnemy()))
-                enemies.append((step+10, HardenedEnemy()))
                 enemies.append((step+20, SwarmEnemy()))
 
+        elif 5 <= wave < 10:
+            #List of (step, enemy) pairs spread across an interval of time (steps)
+
+            steps = int(40 * (wave ** .5))  #The number of steps to spread the enemies across
+            count = wave * 2  #The number of enemies to spread across the (time) steps
+
+            for step in self.generate_intervals(steps, count):
+                enemies.append((step, SimpleEnemy()))
+                enemies.append((step+20, HardenedEnemy()))
+                enemies.append((step+50, SwarmEnemy()))
+
         elif wave == 10:
-            # Generate sub waves
+            #Generate sub waves
             sub_waves = [
-                # (steps, number of enemies, enemy constructor, args, kwargs)
-                (50, 10, SimpleEnemy, (), {}),  # 10 enemies over 50 steps
-                (100, None, None, None, None),  # then nothing for 100 steps
-                (50, 10, SimpleEnemy, (), {}),  # then another 10 enemies over 50 steps
+                #(steps, number of enemies, enemy constructor, args, kwargs)
+                (50, 10, SimpleEnemy, (), {}),  #10 enemies over 50 steps
+                (100, None, None, None, None),  #then nothing for 100 steps
+                (50, 10, SimpleEnemy, (), {}),  #then another 10 enemies over 50 steps
                 (30, 1, lambda game=game: SuperRichardEnemy(game), (), {}),
             ]
 
             enemies = self.generate_sub_waves(sub_waves)
 
-        else:  # 11 <= wave <= 20
-            # Now it's going to get hectic
+        else:  #11 <= wave <= 20
+            #Now it's going to get hectic
 
             sub_waves = [
                 (
-                    int(13 * wave),  # total steps
-                    int(25 * wave ** (wave / 50)),  # number of enemies
-                    SimpleEnemy,  # enemy constructor
-                    (),  # positional arguments to provide to enemy constructor
-                    {},  # keyword arguments to provide to enemy constructor
+                    int(13 * wave),  #total steps
+                    int(25 * wave ** (wave / 50)),  #number of enemies
+                    SimpleEnemy,  #enemy constructor
+                    (),  #positional arguments to provide to enemy constructor
+                    {},  #keyword arguments to provide to enemy constructor
                 ),
                 (
-                    int(13 * wave),  # total steps
-                    int(25 * wave ** (wave / 50)),  # number of enemies
-                    HardenedEnemy,  # enemy constructor
-                    (),  # positional arguments to provide to enemy constructor
-                    {},  # keyword arguments to provide to enemy constructor
+                    int(13 * wave),  #total steps
+                    int(25 * wave ** (wave / 50)),  #number of enemies
+                    HardenedEnemy,  #enemy constructor
+                    (),  #positional arguments to provide to enemy constructor
+                    {},  #keyword arguments to provide to enemy constructor
                 ),
                 (
-                    int(2 * wave),  # total steps
-                    int(5 * wave ** (wave / 50)),  # number of enemies
-                    lambda game=game: SuperRichardEnemy(game),  # enemy constructor
-                    (),  # positional arguments to provide to enemy constructor
-                    {},  # keyword arguments to provide to enemy constructor
+                    int(2 * wave),  #total steps
+                    int(5 * wave ** (wave / 100)),  #number of enemies
+                    lambda game=game: SuperRichardEnemy(game),  #enemy constructor
+                    (),  #positional arguments to provide to enemy constructor
+                    {},  #keyword arguments to provide to enemy constructor
                 ),
 
             ]
@@ -172,7 +181,7 @@ class StatusBar(tk.Frame):
 class ShopTowerView(tk.Frame):
     '''class for each shop tower item'''
 
-    def __init__(self, master, tower, click_command, *args, **kwargs):#, *args, **kwargs):
+    def __init__(self, master, tower, click_command, **kwargs):#, *args, **kwargs):
         '''
         Constructs an individual shop tower view including the tower on display
         and the command to execute upon clicked.
@@ -180,21 +189,20 @@ class ShopTowerView(tk.Frame):
         tower (AbstractTower): the tower to display on the frame
         click_command: the command to run when the shop
             view is clicked on
-
-        *args: 
-
+        
+        **kwargs: additional positional arguments
         '''
         super().__init__(master, **kwargs)
         self.configure(pady=10)
 
-        tower.position = (tower.cell_size//2, tower.cell_size//2)  # Position in centre
-        tower.rotation = 3 * math.pi / 2  # Point up
+        tower.position = (tower.cell_size//2, tower.cell_size//2)  #Position in centre
+        tower.rotation = 3 * math.pi / 2  #Point up
 
         self._canvas = tk.Canvas(self, width=tower.cell_size, height=tower.cell_size,
             bg="#ff6600", bd=0, highlightthickness=0)
         self._canvas.pack(expand=True, side=tk.LEFT)
 
-        TowerView.draw(self._canvas, tower, tower.cell_size)
+        TowerView.draw(self._canvas, tower)
 
         self._label = tk.Label(self, bg="#ff6600")
         self._label.configure(text="%s\nprice:%s" %(tower.name, tower.get_value()))
@@ -219,16 +227,91 @@ class ShopTowerView(tk.Frame):
         else:
             self._label.configure(fg='red')
 
+    def choose_tower(self):
+        '''change the background colour and then run select_command
+
+        '''
+        if enabled:
+            self._label.configure(fg='black')
+        else:
+            self._label.configure(fg='red')
+
+
+
 class UpgradeControl(tk.Frame):
     '''controls the upgrade of the towers'''
 
-    def __init__(self, master, tower):
-        pass
+    def __init__(self, master, tower, app):
+        '''construct a upgrade control frame under the 
+        play control frame
+        
+        There will be 3 levels in total and the tower is initially level 1.
+        parameters:
+            master (tk.Frame): the parent of the widget
+            tower (AbstractTower)
+            app (TowerGameApp): the instance of the TowerGameApp
+        '''
+        super().__init__(master)
+        #know where the instance of the app is
+        self._app = app
+
+        #get price of the tower upgrade and its level
+        self._tower = tower
+
+        self._price = tower.level_cost
+
+        self._level2_label = tk.Label(self, text="level 2: %d"%self._price)
+        self._level2_label.pack(side=tk.LEFT, expand=True)
+
+        self._level2_checkbox = tk.Checkbutton(self, 
+            command=lambda:self.level_up(2))
+        self._level2_checkbox.pack(side=tk.LEFT, expand=True)
+
+        self._level3_label = tk.Label(self, text="level 3: %d"%self._price)
+        self._level3_label.pack(side=tk.LEFT, expand=True)
+       
+        self._level3_checkbox = tk.Checkbutton(self, 
+            command=lambda:self.level_up(3))
+        self._level3_checkbox.pack(side=tk.LEFT, expand=True)
+
+        self.check_available()
+
+
+
+    def level_up(self, level):
+        '''level up the tower to a level
+        parameters:
+            level (int): level to level up to
+        '''
+        self._app._coins -= self._price
+        self._tower.level = level 
+
+        print('%s level %d!'%(self._tower.name,self._tower.level))
+
+
+    def check_available(self):
+        '''checks and enables upgrade checkboxes according to coins'''
+
+        #player cannot repeat upgrades
+        if self._tower.level == 2:
+            self._level2_checkbox.configure(state=tk.DISABLED)
+        elif self._tower.level == 3:
+            self._level3_checkbox.configure(state=tk.DISABLED)
+
+        #player can't buy upgrades without enough coins
+        if self._app._coins < self._price:
+            self._level2_checkbox.configure(state=tk.DISABLED)
+            self._level3_checkbox.configure(state=tk.DISABLED)
+
+
+            
+
+
 
 class TowerGameApp(Stepper):
     """Top-level GUI application for a simple tower defence game"""
 
-    # All private attributes for ease of reading
+    #All private attributes for ease of reading
     _current_tower = None
     _paused = False
     _won = None
@@ -253,7 +336,7 @@ class TowerGameApp(Stepper):
         self._master = master
         super().__init__(master, delay=delay)
         master.title("tkDefend")
-
+        
         self._game = game = TowerGame()
 
         self._highscores = {}
@@ -261,17 +344,17 @@ class TowerGameApp(Stepper):
         self.setup_menu()
         self._master.configure(menu=self._menu)
 
-        # create a game view and draw grid borders
+        #create a game view and draw grid borders
         self._view = view = GameView(master, size=game.grid.cells,
                                      cell_size=game.grid.cell_size,
-                                     bg='#000033') # was antique white
+                                     bg='#000033') #was antique white
         view.pack(side=tk.LEFT, expand=True)
 
         #have a menu frame on the right
         self._right_frame = tk.Frame(self._master)
         self._right_frame.pack(side=tk.RIGHT, expand=True, fill=tk.Y)
 
-        # Task 1.3 (Status Bar): instantiate status bar
+        #Task 1.3 (Status Bar): instantiate status bar
         self._status_bar = StatusBar(self._right_frame)
 
         #shop goes between status bar and control frame
@@ -286,23 +369,26 @@ class TowerGameApp(Stepper):
             MissileTower,
         ]
 
-        # Create views for each tower & store to update if availability changes
+        #Create views for each tower & store to update if availability changes
         self._tower_views = []
         for tower_class in towers:
             tower = tower_class(self._game.grid.cell_size // 2)
 
             #lambda class_=tower_class: self.select_tower(class_)
 
-            view = ShopTowerView(shop, tower, lambda class_=tower_class: self.select_tower(class_),
+            view = ShopTowerView(shop, tower, 
+                lambda class_=tower_class: 
+                    self.select_tower(class_),
                 bg="#ff6600", highlightbackground="#4b3b4a",bd=0,highlightthickness=0)
 
+
             view.pack(fill=tk.X)
-            # Used to check if tower is affordable when refreshing view
+            #Used to check if tower is affordable when refreshing view
             self._tower_views.append((tower, view)) 
 
 
 
-        # Task 1.5 (Play Controls): instantiate widgets here
+        #Task 1.5 (Play Controls): instantiate widgets here
         self._control_frame = tk.Frame(self._right_frame)
         self._control_frame.pack(expand=True)
         self._wave_button = tk.Button(self._control_frame,
@@ -315,8 +401,11 @@ class TowerGameApp(Stepper):
             command=self._toggle_paused)
         self._play_button.pack(side=tk.RIGHT)
 
+        #6.3 initiate upgrade dictionary to store upgrade controls for each tower
+        self._upgrade_controls = {}
 
-        # bind game events
+
+        #bind game events
         game.on("enemy_death", self._handle_death)
         game.on("enemy_escape", self._handle_escape)
         game.on("cleared", self._handle_wave_clear)
@@ -336,7 +425,7 @@ class TowerGameApp(Stepper):
         #catching keyboard event Destroy
         #self._master.bind("<Destroy>", self._exit)
 
-        # Level
+        #Level
         self._level = MyLevel()
 
         #self.select_tower(SimpleTower)
@@ -344,7 +433,7 @@ class TowerGameApp(Stepper):
 
         self._view.draw_borders(game.grid.get_border_coordinates(), "#66ff66")
 
-        # Get ready for the game
+        #Get ready for the game
         self._setup_game()
 
         #laser count
@@ -354,7 +443,7 @@ class TowerGameApp(Stepper):
         '''
         Construct a file menu
         '''
-        # Task 1.4: construct file menu here
+        #Task 1.4: construct file menu here
         self._menu = tk.Menu(self._master)
         self._filemenu = tk.Menu(self._menu)
 
@@ -374,7 +463,7 @@ class TowerGameApp(Stepper):
         if paused is None:
             paused = not self._paused
 
-        # Task 1.5 (Play Controls): Reconfigure the pause button here
+        #Task 1.5 (Play Controls): Reconfigure the pause button here
         
         if paused:
             self.pause()
@@ -388,23 +477,23 @@ class TowerGameApp(Stepper):
     def _setup_game(self):
         self._wave = 0
         self._score = 0
-        self._coins = 50
-        self._lives = 20
+        self._coins = 100
+        self._lives = 30
 
         self._won = False
 
-        # Task 1.3 (Status Bar): Update status here
+        #Task 1.3 (Status Bar): Update status here
         self._status_bar.set_wave(self._wave)
         self._status_bar.set_score(self._score)
         self._status_bar.set_coins(self._coins)
         self._status_bar.set_lives(self._lives)
 
-        # Task 1.5 (Play Controls): Re-enable the play controls here (if they were ever disabled)
+        #Task 1.5 (Play Controls): Re-enable the play controls here (if they were ever disabled)
         if self._wave_button.cget('state') != 'normal' or self._play_button.cget('state') != 'normal':
             self._wave_button.config(state=tk.NORMAL)
             self._play_button.config(state=tk.NORMAL)
 
-        # set initial availability for tower views
+        #set initial availability for tower views
         for tower, view in self._tower_views:
             if self._coins < tower.get_value():
                 view.set_available(False)
@@ -413,11 +502,11 @@ class TowerGameApp(Stepper):
 
         self._game.reset()
 
-        # Auto-start the first wave
+        #Auto-start the first wave
         self.next_wave()
         self._toggle_paused(paused=True)
 
-    # Task 1.4 (File Menu): Complete menu item handlers here (including docstrings!)
+    #Task 1.4 (File Menu): Complete menu item handlers here (including docstrings!)
     
     def _new_game(self):
         '''
@@ -452,7 +541,11 @@ class TowerGameApp(Stepper):
     def _handle_highscores(self):
         '''displays highscores'''
         label_txt = "High scores:\n"
-        for player in self._highscores:
+        #sort the highscores so that they are displayed top down
+        highscores_sorted = sorted(self._highscores, key=self._highscores.__getitem__,
+            reverse=True)
+
+        for player in highscores_sorted:
             label_txt += "%s: %s\n" %(player, self._highscores[player])
 
         highscore_window = tk.Toplevel(self._master)
@@ -491,8 +584,8 @@ class TowerGameApp(Stepper):
 
         return not self._won
 
-    # Task 1.2 (Tower Placement): Complete event handlers here (including docstrings!)
-    # Event handlers: _move, _mouse_leave, _left_click
+    #Task 1.2 (Tower Placement): Complete event handlers here (including docstrings!)
+    #Event handlers: _move, _mouse_leave, _left_click
     def _move(self, event):
         """
         Handles the mouse moving over the game view canvas
@@ -503,17 +596,17 @@ class TowerGameApp(Stepper):
         if self._current_tower.get_value() > self._coins:
             return
 
-        # move the shadow tower to mouse position
+        #move the shadow tower to mouse position
         position = event.x, event.y
         self._current_tower.position = position
 
         legal, grid_path = self._game.attempt_placement(position)
 
-        # find the best path and covert positions to pixel positions
+        #find the best path and covert positions to pixel positions
         path = [self._game.grid.cell_to_pixel_centre(position)
                 for position in grid_path.get_shortest()]
 
-        # Task 1.2 (Tower placement): Draw the tower preview here
+        #Task 1.2 (Tower placement): Draw the tower preview here
         self._view.draw_preview(self._current_tower, legal)
         self._view.draw_path(path)
 
@@ -526,9 +619,9 @@ class TowerGameApp(Stepper):
             event (tk.Event): Tkinter mouse event
         """
 
-        # Task 1.2 (Tower placement): Delete the preview
-        # Hint: Relevant canvas items are tagged with: 'path', 'range', 'shadow'
-        #       See tk.Canvas.delete (delete all with tag)
+        #Task 1.2 (Tower placement): Delete the preview
+        #Hint: Relevant canvas items are tagged with: 'path', 'range', 'shadow'
+        #      See tk.Canvas.delete (delete all with tag)
         self._view.delete("shadow", "range", "path")
 
     def _left_click(self, event):
@@ -538,14 +631,43 @@ class TowerGameApp(Stepper):
         Parameter:
             event (tk.Event): Tkinter mouse event
         """
-        # retrieve position to place tower
+        #retrieve position to place tower
         if self._current_tower is None or self._paused != False:
             return
 
         position = event.x, event.y
         cell_position = self._game.grid.pixel_to_cell(position)
+        
+        #if the event position already has a tower, show the upgrades for it
+        if cell_position in self._game.towers:
 
-        # Task 1.2 (Tower placement): Attempt to place the tower being previewed
+            tower = self._game.towers[cell_position]
+
+            print(cell_position)
+            print(tower)
+            print(self._game.towers)
+            print('\n')
+
+            #hide all upgrade_controls
+            for tower in self._upgrade_controls:
+                self._upgrade_controls[tower].pack_forget()
+
+            
+            #initiate the upgrade control if it doesn't already exist
+            if tower not in self._upgrade_controls:
+                upgrade_control = UpgradeControl(self._right_frame, tower, self)
+                self._upgrade_controls[tower] = upgrade_control
+                upgrade_control.check_available()
+                upgrade_control.pack(expand=True)
+
+            else:
+                #then pack the one selected
+                upgrade_control = self._upgrade_controls[tower]
+                upgrade_control.check_available()
+                upgrade_control.pack(expand=True)
+
+
+        #Task 1.2 (Tower placement): Attempt to place the tower being previewed
         legal, grid_path = self._game.attempt_placement(position)
 
         if legal and (self._current_tower.get_value() <= self._coins):
@@ -555,6 +677,8 @@ class TowerGameApp(Stepper):
             #refresh view upon placing a tower
 
             if self._game.place(cell_position, tower_type=self._current_tower.__class__):
+                #delete preview after placing
+                self._view.delete("shadow", "range", "path")
                 self._step()
 
     def _right_click(self, event):
@@ -576,7 +700,7 @@ class TowerGameApp(Stepper):
         #updates coins string var to display coins
         self._status_bar.set_coins(self._coins)
 
-        # update availability for tower views
+        #update availability for tower views
         for tower, view in self._tower_views:
             if self._coins < tower.get_value():
                 view.set_available(False)
@@ -590,14 +714,14 @@ class TowerGameApp(Stepper):
 
         self._wave += 1
 
-        # Task 1.3 (Status Bar): Update the current wave display here
+        #Task 1.3 (Status Bar): Update the current wave display here
         self._status_bar.set_wave(self._wave)
 
-        # Task 1.5 (Play Controls): Disable the add wave button here (if this is the last wave)
+        #Task 1.5 (Play Controls): Disable the add wave button here (if this is the last wave)
         if self._wave == 20:
             self._wave_button.config(state=tk.DISABLED)
 
-        # Generate wave and enqueue
+        #Generate wave and enqueue
         wave = self._level.get_wave(self._wave, self._game)
         for step, enemy in wave:
             enemy.set_cell_size(self._game.grid.cell_size)
@@ -620,15 +744,15 @@ class TowerGameApp(Stepper):
         Parameters:
             enemies (list<AbstractEnemy>): The enemies which died in a step
         """
-        for enemy in enemies:
-            if type(enemy) == SuperRichardEnemy:
-                time.sleep(0.3)
+        # for enemy in enemies:
+        #     if type(enemy) == SuperRichardEnemy:
+        #         time.sleep(0.2)
         bonus = len(enemies) ** .5
         for enemy in enemies:
             self._coins += enemy.points
             self._score += int(enemy.points * bonus)
 
-        # Task 1.3 (Status Bar): Update coins & score displays here
+        #Task 1.3 (Status Bar): Update coins & score displays here
         self._status_bar.set_coins(self._coins)
         self._status_bar.set_score(self._score)
 
@@ -646,14 +770,15 @@ class TowerGameApp(Stepper):
         Parameters:
             enemies (list<AbstractEnemy>): The enemies which escaped in a step
         """
-        self._lives -= len(enemies)
-        if self._lives < 0:
-            self._lives = 0
+        for enemy in enemies:
+            self._lives -= enemy.live_damage
+            if self._lives < 0:
+                self._lives = 0
 
-        # Task 1.3 (Status Bar): Update lives display here
+        #Task 1.3 (Status Bar): Update lives display here
         self._status_bar.set_lives(self._lives)
 
-        # Handle game over
+        #Handle game over
         if self._lives == 0:
             self._handle_game_over(won=False)
 
@@ -693,7 +818,7 @@ class TowerGameApp(Stepper):
         self._won = won
         self.stop()
 
-        # Task 1.4 (Dialogs): show game over dialog here
+        #Task 1.4 (Dialogs): show game over dialog here
         dialog_box = tk.Toplevel(self._master)
         dialog_box.title("Game Over")
 
@@ -720,12 +845,11 @@ class TowerGameApp(Stepper):
 
 
 
-# Task 1.1 (App Class): Instantiate the GUI here
+#Task 1.1 (App Class): Instantiate the GUI here
 
 if __name__ == "__main__":
     '''main function, instantiates the GUI'''
     root = tk.Tk()
     app = TowerGameApp(root)
     root.mainloop()
-    root.withdraw()
 

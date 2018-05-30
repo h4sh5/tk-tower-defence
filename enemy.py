@@ -22,6 +22,7 @@ class AbstractEnemy(Unit):
     name: str
     colour: str
     points: int
+    live_damage = 1
 
     def __init__(self, grid_size=(.2, .2), grid_speed=1 / 12, health=100):
         """Construct an abstract enemy
@@ -70,6 +71,7 @@ class SimpleEnemy(AbstractEnemy):
     colour = '#E23152'  # Amaranth
 
     points = 5
+    live_damage = 1
 
     def __init__(self, grid_size=(.2, .2), grid_speed=5/60, health=100):
         super().__init__(grid_size, grid_speed, health)
@@ -138,6 +140,7 @@ class SwarmEnemy(SimpleEnemy):
 
     name = 'Swarm Enemy'
     points = 3
+    live_damage = 1
 
     def __init__(self, grid_size=(.15, .15), grid_speed=5.1/60, health=40):
         super().__init__(grid_size, grid_speed, health)
@@ -163,6 +166,7 @@ class HardenedEnemy(AbstractEnemy):
     colour = "grey"
 
     points = 10
+    live_damage = 2
 
     def __init__(self, grid_size=(.3, .3), grid_speed=3/60, health=100):
         super().__init__(grid_size, grid_speed, health)
@@ -236,6 +240,7 @@ class SuperRichardEnemy(AbstractEnemy):
 
     points = 200
     health = 1000
+    live_damage = 5
 
     def __init__(self, game, grid_size=(.6, .6), grid_speed=2.5/60, health=health):
         '''

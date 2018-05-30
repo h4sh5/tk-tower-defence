@@ -384,14 +384,15 @@ class EnemyView(SimpleView):
                 ((top_left[0]-30+health_bar_width), top_left[1] - health_bar_offset_y), 
                 fill='yellow', outline='yellow', tag='enemy')
 
-        elif 0.2 <= health_percent < 0.4:
+        elif 0.1 <= health_percent < 0.4:
             health_bar = canvas.create_rectangle((top_left[0]-health_bar_offset_x, top_left[1] - health_bar_offset_y), 
                 ((top_left[0]-health_bar_offset_x+health_bar_width), top_left[1] - health_bar_offset_y), 
                 fill='red', outline='red', tag='enemy')
 
-        elif health_percent <= 0.2 :
+        elif health_percent <= 0.1 :
 
             explosion_picture = tk.PhotoImage(file="images/explosion.gif")
+            explosion_picture.zoom(5, 5)
             explosion = canvas.create_image((top_left[0], top_left[1]+30), image=explosion_picture, tag='enemy')
             canvas.explosion = explosion_picture
             return [explosion]

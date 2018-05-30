@@ -127,7 +127,7 @@ class SimpleTower(AbstractTower):
 
     rotation_threshold = (1 / 6) * math.pi
 
-    def __init__(self, cell_size: int, grid_size=(.9, .9), rotation=math.pi * .25, base_damage=1, level: int = 1):
+    def __init__(self, cell_size: int, grid_size=(.9, .9), rotation=math.pi * .25, base_damage=5, level: int = 1):
         super().__init__(cell_size, grid_size, rotation, base_damage, level)
 
     def step(self, data):
@@ -486,7 +486,7 @@ class LaserTower(SimpleTower):
 
     cool_down_steps = 1 #insanely fast
 
-    base_cost = 50
+    base_cost = 70
     level_cost = 60
 
     range = CircularRange(4)
@@ -558,7 +558,7 @@ class Inferno(Pulse):
 
     colour = 'orange'
     name = 'Inferno'
-    base_damage = 30
+    base_damage = 10
 
 
     def step(self, units):
@@ -614,8 +614,10 @@ class Inferno(Pulse):
 
 class InfernoTower(PulseTower):
     '''a pulse tower that shoots infernos'''
+    name = "Inferno Tower"
     colour = 'orange'
     cool_down_steps = 3
+    base_cost = 50
 
     range = PlusRange(0.5, 1.5)
 
