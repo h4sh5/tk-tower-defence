@@ -162,7 +162,7 @@ class InvincibleEnemy(SimpleEnemy):
 class HardenedEnemy(AbstractEnemy):
     """An enemy that is immune to projectile and explosive damage"""
     name = "Hardened Enemy"
-    colour = "grey"
+    colour = "orange"
 
     points = 7
     live_damage = 2

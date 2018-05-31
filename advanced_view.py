@@ -53,7 +53,7 @@ import os.path
 
 from range_ import AbstractRange, DonutRange, PlusRange, CircularRange
 from tower import AbstractTower, MissileTower, PulseTower, SimpleTower, \
-    AbstractObstacle, Missile, Pulse, LaserTower, Laser, Inferno, InfernoTower
+    AbstractObstacle, Missile, Pulse, LaserTower, Laser, Inferno, InfernoTower, Bullet, GunTower
 from enemy import AbstractEnemy, SuperRichardEnemy, SwarmEnemy
 from utilities import rotate_point
 
@@ -422,6 +422,7 @@ class ObstacleView(SimpleView):
         (Pulse, '_draw_pulse'),
         (Laser, '_draw_laser'),
         (Inferno, '_draw_inferno'),
+        (Bullet, '_draw_bullet'),
     ])
 
     @classmethod
@@ -510,3 +511,18 @@ class ObstacleView(SimpleView):
         tail = x - radius, y - radius
 
         return canvas.create_oval(head, tail, fill=inferno.colour, outline=inferno.colour, tag='obstacle')
+
+    @classmethod
+    def _draw_bullet(cls, canvas: tk.Canvas, missile: Missile):
+        """Draws a missile"""
+
+        x, y = missile.position
+
+        length, width = missile.size
+
+        dx, dy = rotate_point((length / 2, width / 2), missile.rotation)
+
+        head = x + dx, y + dy
+        tail = x - dx, y - dy
+
+        return canvas.create_line(head, tail, tag='obstacle', fill='orange', width=1) # had no fill before (black)

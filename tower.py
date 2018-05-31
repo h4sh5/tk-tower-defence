@@ -295,6 +295,7 @@ class MissileTower(SimpleTower):
         return [missile]
 
 
+
 class Pulse(AbstractObstacle):
     """A projectile fired from a PulseTower that damages all enemies it collides with"""
     name = "Pulse"
@@ -669,4 +670,96 @@ class InfernoTower(PulseTower):
         return infernos
 
 
+
+    
+
+class Bullet(AbstractObstacle):
+    """A simple projectile fired from a BulletTower"""
+    name = "Bullet"
+    colour = 'orange'  # Eburnean
+
+    rotation_threshold = (1 / 3) * math.pi
+
+    def __init__(self, position, cell_size, target: AbstractEnemy, size=.2,
+                 rotation: Union[int, float] = 0, grid_speed=.1, damage=80):
+        super().__init__(position, (size, 0), cell_size, grid_speed=grid_speed, rotation=rotation, damage=damage)
+        self.target = target
+        self.rotation = rotation
+
+    def step(self, units):
+        """Performs a time step for this missile
+        
+        Moves towards target and damages if collision occurs
+        If target is dead, this missile expires
+        
+        Parameters:
+            units.enemies (UnitManager): The unit manager to select targets from
+            
+        Return:
+            (persist, new_obstacles) pair, where:
+                - persist (bool): True if the obstacle should persist in the game (else will be removed)
+                - new_obstacles (list[AbstractObstacle]): A list of new obstacles to add to the game, or None
+        """
+        if self.target.is_dead():
+            return False, None
+
+        # move toward the target
+        radius = euclidean_distance(self.position, self.target.position)
+
+        if radius <= self.speed:
+            self.target.damage(self.damage, 'explosive')
+            return False, None
+
+
+
+        dx, dy = polar_to_rectangular(self.speed, self.rotation)
+        x, y = self.position
+        self.position = x + dx, y + dy
+
+        return True, None
+
+    
+
+class GunTower(SimpleTower):
+    '''a tower that shoots bullets but is better than simple tower'''
+    name = "Gun Tower"
+    colour = "grey"
+    cool_down_steps = 2
+    base_cost = 30
+
+    def __init__(self, cell_size: int, grid_size=(.9, .9), rotation=math.pi * .25, base_damage=30, level: int = 1):
+        super().__init__(cell_size, grid_size, rotation, base_damage, level)
+        self._target = None
+
+
+    def step(self, units):
+        """Rotates toward 'target' and fires missile if possible"""
+        self.cool_down.step()
+
+        target = self._get_target(units.enemies)
+
+        if target is None:
+            return None
+
+        # Rotate toward target
+        angle = angle_between(self.position, target.position)
+        partial_angle = rotate_toward(self.rotation, angle, self.rotation_threshold)
+
+        self.rotation = partial_angle
+
+        if angle != partial_angle or not self.cool_down.is_done():
+            return None
+
+        self.cool_down.start()
+
+        # Spawn missile on tower
+        bullet = Bullet(self.position, self.cell_size, target, rotation=self.rotation,
+                          damage=self.get_damage(), grid_speed=.4)
+
+        # Move missile to outer edge of tower
+        radius = self.grid_size[0] / 2
+        delta = polar_to_rectangular(self.cell_size * radius, partial_angle)
+        bullet.move_by(delta)
+
+        return [bullet]
 

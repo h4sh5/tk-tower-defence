@@ -1,7 +1,7 @@
 import tkinter as tk
 
 from model import TowerGame
-from tower import SimpleTower, MissileTower, LaserTower, InfernoTower, SlowTower
+from tower import SimpleTower, MissileTower, LaserTower, InfernoTower, SlowTower, GunTower
 from enemy import SimpleEnemy, HardenedEnemy, SuperRichardEnemy, SwarmEnemy
 from utilities import Stepper
 from view import GameView
@@ -406,6 +406,7 @@ class TowerGameApp(Stepper):
             InfernoTower,
             LaserTower,
             MissileTower,
+            GunTower,
         ]
 
         self._towers.sort(key=lambda tower_class:tower_class.base_cost)
@@ -525,6 +526,8 @@ class TowerGameApp(Stepper):
         self._paused = paused
 
     def _setup_game(self):
+        '''setup the game'''
+
         self._wave = 0
         self._score = 0
         self._coins = 100
@@ -587,6 +590,7 @@ class TowerGameApp(Stepper):
 
         #quitting with keyboard
         def handle_return(event):
+            '''handle quitting with keyboard'''
             self._master.destroy()
 
         confirm_window.bind("<Return>", handle_return)
