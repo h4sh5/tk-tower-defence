@@ -190,6 +190,7 @@ class Missile(AbstractObstacle):
         super().__init__(position, (size, 0), cell_size, grid_speed=grid_speed, rotation=rotation, damage=damage)
         self.target = target
 
+
     def step(self, units):
         """Performs a time step for this missile
         
@@ -724,7 +725,7 @@ class GunTower(SimpleTower):
     '''a tower that shoots bullets but is better than simple tower'''
     name = "Gun Tower"
     colour = "grey"
-    cool_down_steps = 2
+    cool_down_steps = 4
     base_cost = 30
 
     def __init__(self, cell_size: int, grid_size=(.9, .9), rotation=math.pi * .25, base_damage=30, level: int = 1):
