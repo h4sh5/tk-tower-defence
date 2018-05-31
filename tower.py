@@ -122,8 +122,8 @@ class SimpleTower(AbstractTower):
     range = CircularRange(1.5)
     cool_down_steps = 0
 
-    base_cost = 20
-    level_cost = 15
+    base_cost = 30
+    level_cost = 20
 
     rotation_threshold = (1 / 6) * math.pi
 
@@ -232,7 +232,7 @@ class MissileTower(SimpleTower):
 
     cool_down_steps = 10
 
-    base_cost = 80
+    base_cost = 150
     level_cost = 60
 
     range = DonutRange(1.5, 4.5)
@@ -373,7 +373,8 @@ class SlowTower(SimpleTower):
     '''a tower that slows down enemies'''
     name = 'Slow Tower'
     colour = '#6183B4'
-    base_cost = 70
+    base_cost = 100
+    level_cost = 120
 
     def step(self, data):
         """Rotates toward 'target' and attacks if possible"""
@@ -389,7 +390,7 @@ class SlowTower(SimpleTower):
         self.rotation = partial_angle
 
         if partial_angle == angle:
-            target.grid_speed = 1/24
+            target.grid_speed = 1/12 / (self.get_damage()/1.8) 
 
 
 class PulseTower(AbstractTower):
@@ -507,8 +508,8 @@ class LaserTower(SimpleTower):
 
     cool_down_steps = 1 #insanely fast
 
-    base_cost = 70
-    level_cost = 60
+    base_cost = 350
+    level_cost = 380 
 
     range = CircularRange(4)
 
@@ -638,7 +639,8 @@ class InfernoTower(PulseTower):
     name = "Inferno Tower"
     colour = 'orange'
     cool_down_steps = 5
-    base_cost = 50
+    base_cost = 100
+    level_cost = 120
 
     range = PlusRange(0.5, 1.5)
 

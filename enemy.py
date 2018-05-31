@@ -138,10 +138,10 @@ class SwarmEnemy(SimpleEnemy):
     but comes in a swarm. Has a random blue or yellow colour to mimic python"""
 
     name = 'Swarm Enemy'
-    points = 3
+    points = 1
     live_damage = 1
 
-    def __init__(self, grid_size=(.15, .15), grid_speed=5.1/60, health=40):
+    def __init__(self, grid_size=(.15, .15), grid_speed=5.1/60, health=80):
         super().__init__(grid_size, grid_speed, health)
 
 
@@ -164,7 +164,7 @@ class HardenedEnemy(AbstractEnemy):
     name = "Hardened Enemy"
     colour = "grey"
 
-    points = 8
+    points = 7
     live_damage = 2
 
     def __init__(self, grid_size=(.3, .3), grid_speed=3/60, health=100):
@@ -237,8 +237,8 @@ class SuperRichardEnemy(AbstractEnemy):
     name = "Super Richard"
     colour = "red"
 
-    points = 50
-    health = 1000
+    points = 15
+    health = 1500
     live_damage = 5
     id = 0
 

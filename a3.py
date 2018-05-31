@@ -50,7 +50,7 @@ class MyLevel(AbstractLevel):
             enemies = [ (15, SimpleEnemy()), (30, SimpleEnemy())]
 
 
-        elif 3 <= wave < 5:
+        elif 3 <= wave < 8:
             #List of (step, enemy) pairs spread across an interval of time (steps)
 
             steps = int(40 * (wave ** .5))  #The number of steps to spread the enemies across
@@ -58,18 +58,17 @@ class MyLevel(AbstractLevel):
 
             for step in self.generate_intervals(steps, count):
                 enemies.append((step, SimpleEnemy()))
-                enemies.append((step+20, SwarmEnemy()))
+                #enemies.append((step+20, SwarmEnemy()))
 
-        elif 5 <= wave < 10:
+        elif 8 <= wave < 10:
             #List of (step, enemy) pairs spread across an interval of time (steps)
 
             steps = int(40 * (wave ** .5))  #The number of steps to spread the enemies across
-            count = wave * 2  #The number of enemies to spread across the (time) steps
+            count = wave  #The number of enemies to spread across the (time) steps
 
             for step in self.generate_intervals(steps, count):
                 enemies.append((step, SimpleEnemy()))
                 enemies.append((step+20, HardenedEnemy()))
-                enemies.append((step+50, SwarmEnemy()))
 
         elif wave == 10:
             #Generate sub waves
@@ -103,7 +102,7 @@ class MyLevel(AbstractLevel):
                 ),
                 (
                     int(2 * wave),  #total steps
-                    int(25 * wave ** (wave / 500)),  #number of enemies
+                    int(wave/8 + 1),  #number of enemies
                     lambda game=game: SuperRichardEnemy(game),  #enemy constructor
                     (),  #positional arguments to provide to enemy constructor
                     {},  #keyword arguments to provide to enemy constructor
@@ -409,6 +408,8 @@ class TowerGameApp(Stepper):
             MissileTower,
         ]
 
+        self._towers.sort(key=lambda tower_class:tower_class.base_cost)
+
         #Create views for each tower & store to update if availability changes
         self._tower_views = []
         for tower_class in towers:
@@ -555,6 +556,8 @@ class TowerGameApp(Stepper):
 
         #to store and retrive boss images
         self._view._boss_images = {}
+        self._view.laser_counts = {}
+        self._view.total_laser_count = 0
 
     #Task 1.4 (File Menu): Complete menu item handlers here (including docstrings!)
     
@@ -597,7 +600,9 @@ class TowerGameApp(Stepper):
             label_txt += "%s: %s\n" %(entry['name'], entry['score'])
 
         highscore_window = tk.Toplevel(self._master)
-        label = tk.Label(highscore_window, text=label_txt)
+        highscore_window.title("high scores")
+        highscore_window.geometry('200x200')
+        label = tk.Label(highscore_window, text=label_txt, padx=20)
         label.pack()
 
 
@@ -620,15 +625,11 @@ class TowerGameApp(Stepper):
         """
         
         self._game.step()
+
+        self._view.delete('laser')
+
+
         self.refresh_view()
-
-        if self._laser_count < 20:
-            self._laser_count += 1
-
-        else:
-            self._laser_count = 0
-            self._view.delete('laser')
-
 
         return not self._won
 
@@ -691,10 +692,6 @@ class TowerGameApp(Stepper):
 
             tower = self._game.towers[cell_position]
 
-            print(cell_position)
-            print(tower)
-            print(self._game.towers)
-            print('\n')
 
             #hide all upgrade_controls
             for t in self._upgrade_controls:
@@ -719,7 +716,7 @@ class TowerGameApp(Stepper):
         legal, grid_path = self._game.attempt_placement(position)
 
         if legal and (self._current_tower.get_value() <= self._coins):
-            self._coins = self._coins - self._current_tower.get_value()            
+            self._coins -= self._current_tower.get_value()            
             self._status_bar.set_coins(self._coins)
 
             #refresh view upon placing a tower
@@ -727,6 +724,9 @@ class TowerGameApp(Stepper):
             if self._game.place(cell_position, tower_type=self._current_tower.__class__):
                 #delete preview after placing
                 self._view.delete("shadow", "range", "path")
+                for tower_type, shop_tower_view in self._tower_views:
+                    if tower_type.base_cost > self._coins:
+                        shop_tower_view.set_available(False)
                 self.refresh_view()
                 self._step()
 

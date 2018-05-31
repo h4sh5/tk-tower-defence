@@ -107,7 +107,7 @@ class GameView(tk.Canvas):
 
         self.delete('path')
         #changed path colour to red
-        tag = self.create_line(coordinates, tag='path', dash=(2, 4), fill='red')
+        tag = self.create_line(coordinates, tag='path', dash=(2, 4), fill='red', width=2)
         self.tag_lower(tag)
         self.tag_lower('border')
 

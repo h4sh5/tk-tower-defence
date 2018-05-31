@@ -360,11 +360,13 @@ class EnemyView(SimpleView):
         health_bar_width = (bottom_right[0] - top_left[0]) * health_percent
 
         if health_percent <= 0.5:
-
-
-            angry_file = os.path.join("images", "richard_angry.gif")
-            picture = tk.PhotoImage(file=angry_file)
-            canvas._boss_images[enemy.id] = picture
+            #have a different picture for when he's angry
+            try:
+                picture = canvas._boss_images[str(enemy.id)+'angry']
+            except KeyError:
+                angry_file = os.path.join("images", "richard_angry.gif")
+                picture = tk.PhotoImage(file=angry_file)
+                canvas._boss_images[str(enemy.id)+'angry'] = picture
             
 
         else:
@@ -451,31 +453,37 @@ class ObstacleView(SimpleView):
         head = x + dx, y + dy
         tail = x - dx, y - dy
 
-        return canvas.create_line(head, tail, tag='obstacle', fill='orange') # had no fill before (black)
+        return canvas.create_line(head, tail, tag='obstacle', fill='orange', width=2) # had no fill before (black)
 
     #new laser that is actually a laser
     @classmethod
     def _draw_laser(cls, canvas: tk.Canvas, laser: Laser):
         """Draws a laser with random colours"""
 
-        #delete the last laser beam
-        canvas.delete('laser')
+        try:
+            canvas.laser_counts[laser] += 1
+        except KeyError:
+            canvas.laser_counts[laser] = 1
 
-        x, y = laser.position
+        if canvas.laser_counts[laser] < 3:
 
-        length, width = laser.size
+            canvas.total_laser_count += 1
 
-        dx, dy = rotate_point((length / 2, width / 2), laser.rotation)
+            x, y = laser.position
 
-        #head = x + dx, y + dy
-        #tail = x - dx, y - dy
+            length, width = laser.size
 
-        head = x + dx, y + dy
-        tail = x, y
+            dx, dy = rotate_point((length / 2, width / 2), laser.rotation)
 
-        colour = random.choice(('red','lightblue','yellow','white'))
+            #head = x + dx, y + dy
+            #tail = x - dx, y - dy
 
-        return canvas.create_line(head, tail, tag='laser', fill=colour, width=random.random()*3) #was #00ffff (aqua)
+            head = x + dx, y + dy
+            tail = x, y
+
+            colour = random.choice(('red','lightblue','yellow','white'))
+
+            return canvas.create_line(head, tail, tag='laser', fill=colour, width=random.random()*3) #was #00ffff (aqua)
 
 
 
