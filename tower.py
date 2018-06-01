@@ -510,8 +510,8 @@ class LaserTower(SimpleTower):
 
     cool_down_steps = 1 #insanely fast
 
-    base_cost = 350
-    level_cost = 380 
+    base_cost = 500
+    level_cost = 400 
 
     range = CircularRange(4)
 
@@ -582,7 +582,7 @@ class Inferno(Pulse):
 
     colour = 'orange'
     name = 'Inferno'
-    base_damage = 10
+    base_damage = 20
 
 
     def step(self, units):
@@ -642,7 +642,7 @@ class InfernoTower(PulseTower):
     colour = 'orange'
     cool_down_steps = 5
     base_cost = 100
-    level_cost = 120
+    level_cost = 80
 
     range = PlusRange(0.5, 1.5)
 
@@ -728,7 +728,7 @@ class GunTower(SimpleTower):
     cool_down_steps = 4
     base_cost = 30
 
-    def __init__(self, cell_size: int, grid_size=(.9, .9), rotation=math.pi * .25, base_damage=30, level: int = 1):
+    def __init__(self, cell_size: int, grid_size=(.9, .9), rotation=math.pi * .25, base_damage=40, level: int = 1):
         super().__init__(cell_size, grid_size, rotation, base_damage, level)
         self._target = None
 

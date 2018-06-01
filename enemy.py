@@ -75,6 +75,7 @@ class SimpleEnemy(AbstractEnemy):
     def __init__(self, grid_size=(.2, .2), grid_speed=5/60, health=100):
         super().__init__(grid_size, grid_speed, health)
 
+
     def damage(self, damage, type_):
         """Inflict damage on the enemy
 

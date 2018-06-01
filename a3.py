@@ -38,16 +38,10 @@ class MyLevel(AbstractLevel):
         """
         enemies = []
 
-        if wave == 1:
+        if 1 <= wave <= 2:
             #A hardcoded singleton list of (step, enemy) pairs
 
             enemies = [ (10, SimpleEnemy()),(12, SimpleEnemy()),(14, SimpleEnemy())]
-
-
-        elif wave == 2:
-            #A hardcoded list of multiple (step, enemy) pairs
-
-            enemies = [ (15, SimpleEnemy()), (30, SimpleEnemy())]
 
 
         elif 3 <= wave < 8:
@@ -57,18 +51,19 @@ class MyLevel(AbstractLevel):
             count = wave * 2  #The number of enemies to spread across the (time) steps
 
             for step in self.generate_intervals(steps, count):
-                enemies.append((step, SimpleEnemy()))
+                #make enemies have more health each wave!
+                enemies.append((step, SimpleEnemy(health=wave/2*100)))
                 #enemies.append((step+20, SwarmEnemy()))
 
-        elif 8 <= wave < 10:
+        elif 7 <= wave < 10:
             #List of (step, enemy) pairs spread across an interval of time (steps)
 
             steps = int(40 * (wave ** .5))  #The number of steps to spread the enemies across
             count = wave  #The number of enemies to spread across the (time) steps
 
             for step in self.generate_intervals(steps, count):
-                enemies.append((step, SimpleEnemy()))
-                enemies.append((step+20, HardenedEnemy()))
+                enemies.append((step, SimpleEnemy(health=wave/2*100)))
+                enemies.append((step+20, HardenedEnemy(health=wave/2*100)))
 
         elif wave == 10:
             #Generate sub waves
@@ -77,7 +72,7 @@ class MyLevel(AbstractLevel):
                 (50, 10, SimpleEnemy, (), {}),  #10 enemies over 50 steps
                 (100, None, None, None, None),  #then nothing for 100 steps
                 (50, 10, SimpleEnemy, (), {}),  #then another 10 enemies over 50 steps
-                (30, 1, lambda game=game: SuperRichardEnemy(game), (), {}),
+                (30, 1, lambda game=game: SuperRichardEnemy(game,health=wave/2.5*1500), (), {}),
             ]
 
             enemies = self.generate_sub_waves(sub_waves)
@@ -599,7 +594,6 @@ class TowerGameApp(Stepper):
         '''displays highscores'''
         label_txt = "High scores:\n"
         high_score_entries = self._high_score_manager.get_entries()
-        print(high_score_entries)
         for entry in high_score_entries:
             label_txt += "%s: %s\n" %(entry['name'], entry['score'])
 
