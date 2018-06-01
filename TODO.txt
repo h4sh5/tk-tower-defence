@@ -1,13 +1,4 @@
-notes:
-- MVC -- model, view and controller design (each in different classes)
-- a step() method 'ticks' the game across all objects (redraw the room, etc.)
-- game model knows everything about the game
-
-- change images to simple space themed
-- make waves go faster and more intense
-- use pack
-- laser towers
-- flame thrower towers
-- faster enemies
-- bulkier enemies
-- damaging enemies -- repair by tapping towers
+- add shockwave tower
+- add all tutors into the game
+- add all student's tower ideas
+- be awesome
