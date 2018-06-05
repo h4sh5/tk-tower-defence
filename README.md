@@ -8,3 +8,5 @@ Controls:
 - sell towers by right clicking
 - bring up the upgrade control for a tower by left clicking on a tower
 - try to bend the path that the enemies will go!
+
+Just run a3.py to start the game!
